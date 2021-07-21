@@ -28,7 +28,7 @@ redirect_from:
 Increase font size ...
 {: .notice}
 
-Hello, my name is Varad. I will be joining Tata Research & Innovation Labs in September 2021. My breadth search over the past four years, resulted in me developing interests in domains at the intersection of mathematics, deep learning, and algorithm optimization. This brought me to work in the domain of Meta Learning.
+Hello, my name is Varad (वरद), pronounced as *V-uh-r-uh-d*. I will be joining Tata Research & Innovation Labs in September 2021. My breadth search over the past four years, resulted in me developing interests in domains at the intersection of mathematics, deep learning, and algorithm optimization. This brought me to work in the domain of Meta Learning.
 
 I completed my Bachelors in Electronics & Communication Engineering from [Indian Institute of Information Technology, Nagpur](https://iiitn.ac.in/) (IIITN). I worked in the domain of Algorithmic Game Theory (COMSOC, precisely) under the guidance of [Dr. Neeldhara Misra](http://people.iitgn.ac.in/~neeldhara/) at [IIT Gandhinagar](https://iitgn.ac.in/). I was also fortunate to research at [HLP Lab](https://healthlanguageprocessing.org/), University of Pennsylvania supervised by [Dr. Graciela Gonzalez-Hernandez](https://www.dbei.med.upenn.edu/bio/graciela-gonzalez-hernandez-ms-phd) in a field at an intersection of NLP, Data mining, and AI for Healthcare. Finally, I was hosted by [Dr. Rekha Singhal](https://www.linkedin.com/in/rekha-singhal-7122635/) at [Tata R&I Computing Systems Lab](https://www.tcs.com/designing-high-performing-enterprise-systems) where I researched in the domain of meta learning and algorithm optimization.
 

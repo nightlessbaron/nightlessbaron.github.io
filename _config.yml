@@ -7,7 +7,7 @@
 
 # Site Settings
 locale                   : "en-US"
-title                    : "Varad Pimpalkhute"
+title                    : "वरद पिंपळखुटे"
 title_separator          : "-"
 name                     : &name "Varad Pimpalkhute"
 description              : &description "Researcher in Machine Learning"

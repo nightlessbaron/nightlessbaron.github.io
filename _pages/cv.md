@@ -51,7 +51,7 @@ Research Experience
   * **Guide**: [Dr. Neeldhara Misra](http://people.iitgn.ac.in/~neeldhara/), Assistant Professor
   * **Duration**: 5 months (Nov'18 - Jan'19, May'19 - July'19)
   1. Contributed a lemma to reduce the NP-Hard problem of winner determination for connected property of candidate graph for NSAV/NAV scoring functions to polynomial time solvable for a fixed size of voters. [[Lemma](https://drive.google.com/file/d/16eH69qaIV4zR65R6IfFjx--N96TYwTv3/view)]
-  2. Performed extensive research in the fields of Fair Division, Voting and studied to hardness of various problems. [Research Notes: [Voting](https://drive.google.com/file/d/1Qr2OcZ7F8uCm-nffBjGOnfHINwYLV8vc/view), [Fair Division](https://drive.google.com/file/d/1wBqIfga0_gr7ruNWzPfPrd44Lnfqx7uk/view)]
+  2. Performed extensive research in the fields of Fair Division, Voting and studied to hardness of various problems. [Research Notes: [Voting](/files/Lecture_Series_on_Computational_Social_Choice.pdf), [Fair Division](/files/Lecture_Series_on_Fair_Division.pdf)]
 
 Publications
 ======
@@ -65,7 +65,7 @@ Undergraduate Thesis
 * **Guide**: [Dr. Graciela Gonzalez-Hernandez](https://www.dbei.med.upenn.edu/bio/graciela-gonzalez-hernandez-ms-phd), [Dr. Arjun Magge](https://www.linkedin.com/in/arjunmagge/)
 * **Overview**: Non-availability of well annotated and balanced datasets is considered as one of the major hurdles in analysing and extracting meaningful information from health-related tweets. In the past few years, the importance of geolocation systems have increased in health care applications, advertisments, natural disaster management, etc. Herein, we present a system which makes use of the location metadata such as geo, place and profile tags; and make use of user tweets to predict the structured location of a given Twitter user. Our system is based on the previous systems Carmen and Pigeo, and we overcome some of the drawbacks present in these systems while retaining the advantages of these systems. Furthermore, we make use of FasTText and Transformer models to build a text classifier for classifying between states in a particular country. The dataset for the same is prepared by making use of Tweepy.
 * **Thesis/Paper**: *to be updated soon ...*
-* **Additional Material**: [Code](https://drive.google.com/drive/folders/1urA52CZ0nkzL9BMR7Up4lL2PiK4-c2N-?usp=sharing) / [Poster](https://drive.google.com/file/d/1x43CSxwQ_346ZCfERJG9Nr03oXrKzH7T/view?usp=sharing) / [Presentation](https://docs.google.com/presentation/d/18yVm710sifS3o9gcFnJRFqjr_2wvq2urd_nsVaToRq8/edit?usp=sharing)
+* **Additional Material**: [Code](https://drive.google.com/drive/folders/1urA52CZ0nkzL9BMR7Up4lL2PiK4-c2N-?usp=sharing) / [Poster](/files/Poster_Geolocation_Extraction_from_Twitter.pdf) / [Presentation](/files/Geolocation_Extraction_for_Twitter.pdf)
 
 
 Projects
@@ -106,7 +106,7 @@ Achievements and leadership
 * My team was in top 3 performing teams for 2 of the 3 shared tasks at SMM4H'21 Workshop.
 * I was a student placement coordinator at my institute for 1.5 years. I mainly dealt with establishing network with companies, and maintaining database of upcoming internships/campus drives.
 * Activities at Undergraduate Institute:
-  * I was a conveyor at the IIITN's coding club community *dotSlash (./)*.
+  * I was a part of the founding committee of IIITN's coding club community *dotSlash (./)*.
   * I was the co-head of the Line Follower event in IIITN's technical fest (*Tantrafiesta*).
   * I was the head for Samarth event in IIITN's cultural fest (*Abhivyakti*). Samarth is a theme event of Abhivyakti that seeks to spread awareness about the physically challenged children in India.
 
