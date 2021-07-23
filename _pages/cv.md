@@ -9,7 +9,7 @@ redirect_from:
 
 {% include base_path %}
 
-Check the **pdf** version of my CV [here](#Buttons){: .btn--research}.
+Check the **pdf** version of my CV [here](\files\Resume_Academic_v9.pdf){: .btn--research}.
 
 Research Interests
 ======
@@ -24,13 +24,14 @@ Education
   * ***B.Tech.***: Bachelors of Technology
   * ***IIITN***: Indian Institute of Information Technology, Nagpur.
 
-Work Experience
+<!---Work Experience
 ======
 * **Machine Learning Researcher**
   * **Computing Systems Lab, Tata Research & Innovation Labs.**
   * **Duties**: Proposing & Implementing Deep Learning Algorithms, Accelerating DL Pipelines.
   * **Guide**: [Dr. Rekha Singhal](https://www.linkedin.com/in/rekha-singhal-7122635/), Principle Scientist & Head of Lab
   * **Joined**: September'21
+-->
 
 Research Experience
 ======
@@ -43,14 +44,14 @@ Research Experience
 * **Health Language Processing Lab**, University of Pennsylvania
   * **Topic**: Multi-task learning on multi-corpus health dataset
   * **Guide**: [Dr. Graciela Gonzalez-Hernandez](https://www.dbei.med.upenn.edu/bio/graciela-gonzalez-hernandez-ms-phd), Associate Professor
-  * **Duration**: 2 months (Jul'20 - Sept'20)
+  * **Duration**: 10 months (Jul'20 - Sept'20), (Jan'21 - Aug'21)
   1. Implemented and improved on existing algorithms in literature to achieve SOTA performance for extraction of health-related information (eg., age, gender, location, symptoms, etc.) using Multi-task learning from multi-corpus twitter health dataset.
-  2. Participated in WNUT'20 shared task, where our system ranked 13<sup>th</sup> all over the world. The task was to classify COVID-19 tweets as informative or not information. [DOI](10.18653/v1/2020.wnut-1.52)
+  2. Participated in WNUT'20 shared task, where our system ranked 13<sup>th</sup> all over the world. The task was to classify COVID-19 tweets as informative or not information. [DOI](https://aclanthology.org/2020.wnut-1.52/)
 * **Game Theory Lab**, Indian Insitute of Technology, Gandhinagar
   * **Topic**: Multiwinner voting with Admissible Sets
   * **Guide**: [Dr. Neeldhara Misra](http://people.iitgn.ac.in/~neeldhara/), Assistant Professor
   * **Duration**: 5 months (Nov'18 - Jan'19, May'19 - July'19)
-  1. Contributed a lemma to reduce the NP-Hard problem of winner determination for connected property of candidate graph for NSAV/NAV scoring functions to polynomial time solvable for a fixed size of voters. [[Lemma](https://drive.google.com/file/d/16eH69qaIV4zR65R6IfFjx--N96TYwTv3/view)]
+  1. Contributed a lemma to reduce the NP-Hard problem of winner determination for connected property of candidate graph for NSAV/NAV scoring functions to polynomial time solvable for a fixed size of voters. [[Lemma](/files/Multiwinner_Voting_with_Admissible_Sets.pdf)]
   2. Performed extensive research in the fields of Fair Division, Voting and studied to hardness of various problems. [Research Notes: [Voting](/files/Lecture_Series_on_Computational_Social_Choice.pdf), [Fair Division](/files/Lecture_Series_on_Fair_Division.pdf)]
 
 Publications
