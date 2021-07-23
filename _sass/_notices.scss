@@ -14,7 +14,7 @@
   margin: 2em 0 !important;  /* override*/
   padding: 1em;
   font-family: $global-font-family;
-  font-size: $type-size-6 !important;
+  font-size: $type-size-5 !important; /* default was 6 */
   text-indent: initial; /* override*/
   background-color: mix(#fff, $notice-color, 90%);
   border-radius: $border-radius;
@@ -49,6 +49,22 @@
     &:hover {
       color: mix(#000, $notice-color, 40%);
     }
+  }
+
+  a:link {
+  text-decoration: none;
+  }
+
+  a:visited {
+    text-decoration: none;
+  }
+
+  a:hover {
+    text-decoration: underline;
+  }
+
+  a:active {
+    text-decoration: none;
   }
 
   code {
