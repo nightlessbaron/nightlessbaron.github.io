@@ -21,13 +21,10 @@ redirect_from:
   - /about.html
 ---
 
-> <q>What I understand is that life is a journey. Every turn in the path leads to a new scenery. My footprints exist on that path, and as to whether they are deep or shallow, it doesn’t matter. All the decisions were mine to make. - **Er Gen**</q>
-
+Hello, my name is Varad (वरद), pronounced as *V-uh-r-uh-d*. I will be joining Tata Research & Innovation Labs in September 2021. My breadth search over the past four years, resulted in me developing interests in domains at the intersection of mathematics, deep learning, and algorithm optimization. This brought me to work in the domain of Meta Learning.
 
 [About Me](/) / [CV](/cv) / [Publications](/publications) / [Teaching Assistant](/teaching)
 {: .notice--success}
-
-Hello, my name is Varad (वरद), pronounced as *V-uh-r-uh-d*. I will be joining Tata Research & Innovation Labs in September 2021. My breadth search over the past four years, resulted in me developing interests in domains at the intersection of mathematics, deep learning, and algorithm optimization. This brought me to work in the domain of Meta Learning.
 
 I completed my Bachelors in Electronics & Communication Engineering from [Indian Institute of Information Technology, Nagpur](https://iiitn.ac.in/) (IIITN). I worked in the domain of Algorithmic Game Theory (COMSOC, precisely) under the guidance of [Dr. Neeldhara Misra](http://people.iitgn.ac.in/~neeldhara/) at [IIT Gandhinagar](https://iitgn.ac.in/). I was also fortunate to research at [HLP Lab](https://healthlanguageprocessing.org/), University of Pennsylvania supervised by [Dr. Graciela Gonzalez-Hernandez](https://www.dbei.med.upenn.edu/bio/graciela-gonzalez-hernandez-ms-phd) in a field at an intersection of NLP, Data mining, and AI for Healthcare. Finally, I was hosted by [Dr. Rekha Singhal](https://www.linkedin.com/in/rekha-singhal-7122635/) at [Tata R&I Computing Systems Lab](https://www.tcs.com/designing-high-performing-enterprise-systems) where I researched in the domain of meta learning and algorithm optimization.
 
@@ -38,6 +35,7 @@ NEWS
 =====
 1. I will be joining Tata R&I Labs in September 2021.
 2. I attended [NAACL-HLT Conference](https://aclweb.org/conference/virtual-naacl-hlt-2021-conference-registration/) at Mexico City, Mexico virtually. I also presented my work on Classification of Health Related Tweets at SMM4H Workshop, cohosted at NAACL.
+3. I completed my bachelors in Electronics & Communication Engineering.
 
 Personal
 =====
@@ -47,3 +45,5 @@ I was born in a serene city called Nagpur, India. I grew up listening to Itihasa
 Shoot me a message anytime if you want to talk with me regarding anything! I would love to have a talk with you over a cup of coffee 😊
 
 {% include gallery %}
+
+> <q>What I understand is that life is a journey. Every turn in the path leads to a new scenery. My footprints exist on that path, and as to whether they are deep or shallow, it doesn’t matter. All the decisions were mine to make. - **Er Gen**</q>
