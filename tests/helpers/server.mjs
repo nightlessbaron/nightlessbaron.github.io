@@ -22,7 +22,7 @@ function resolve(root, urlPath) {
   return null;
 }
 
-export function startServer(root) {
+export function startServer(root, port = 0, host = '127.0.0.1') {
   root = path.resolve(root);
   const server = http.createServer((req, res) => {
     const file = resolve(root, req.url);
@@ -43,8 +43,8 @@ export function startServer(root) {
     res.writeHead(200, { 'Content-Type': type, 'Content-Length': data.length, 'Accept-Ranges': 'bytes' });
     res.end(data);
   });
-  return new Promise(ok => server.listen(0, '127.0.0.1', () => ok({
-    url: `http://127.0.0.1:${server.address().port}`,
+  return new Promise(ok => server.listen(port, host, () => ok({
+    url: `http://${host}:${server.address().port}`,
     close: () => new Promise(done => { server.closeAllConnections?.(); server.close(() => done()); }),
   })));
 }
