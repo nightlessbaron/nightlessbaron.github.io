@@ -131,3 +131,18 @@ canvas.passk { position: absolute; inset: 0; width: 100%; height: 100%; pointer-
 #name { cursor: crosshair; text-decoration: underline dashed transparent 1px; text-underline-offset: 6px; transition: text-decoration-color .2s; }
 #name:hover { text-decoration-color: var(--faint); }
 @media (prefers-reduced-motion: reduce) { #name { cursor: auto; } #name:hover { text-decoration-color: transparent; } }
+
+/* /travel (unlisted) */
+.travel .back { margin: 0 0 18px; }
+.travel-title { font: 400 32px/1.2 var(--serif); margin: 0 0 12px; }
+.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; margin: 18px 0 8px; }
+.gallery figure { margin: 0; }
+.gallery img { width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 8px; cursor: zoom-in; display: block; }
+.gallery img:focus-visible { outline: 2px solid var(--link-hover); outline-offset: 2px; }
+.gallery figcaption { font-size: 13.5px; color: var(--muted); margin-top: 6px; }
+dialog.lightbox { border: 0; padding: 0; background: transparent; max-width: 94vw; max-height: 94vh; overflow: visible; }
+dialog.lightbox::backdrop { background: rgba(10, 10, 12, .86); }
+dialog.lightbox img { display: block; max-width: 94vw; max-height: 84vh; border-radius: 6px; }
+dialog.lightbox .cap { color: #e6e6e6; text-align: center; margin: 8px 0 0; font-size: 14px; }
+dialog.lightbox .close { position: absolute; top: -14px; right: -14px; width: 32px; height: 32px; border: 0; border-radius: 50%;
+  background: #fff; color: #111; font-size: 20px; line-height: 1; cursor: pointer; }
