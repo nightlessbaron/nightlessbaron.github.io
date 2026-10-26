@@ -123,3 +123,11 @@ footer .who { display: block; margin-bottom: 10px; }
 #tagline .lp { top: 100%; color: var(--teal); }
 #tagline .cands > *::before, #tagline .lp::before { content: attr(data-t); }
 #tagline .tok:hover .lp { opacity: 1; }
+
+/* pass@k easter egg (js/passk.js): never blocks clicks, never shifts layout */
+canvas.passk { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+.passk-hud { position: absolute; right: 0; bottom: -18px; pointer-events: none; font: 600 11px/1.3 var(--mono); color: var(--green); }
+.passk-hud.miss { color: #D03A8A; }
+#name { cursor: crosshair; text-decoration: underline dashed transparent 1px; text-underline-offset: 6px; transition: text-decoration-color .2s; }
+#name:hover { text-decoration-color: var(--faint); }
+@media (prefers-reduced-motion: reduce) { #name { cursor: auto; } #name:hover { text-decoration-color: transparent; } }
