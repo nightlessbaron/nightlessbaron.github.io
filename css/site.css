@@ -109,3 +109,17 @@ footer .who { display: block; margin-bottom: 10px; }
   .misc { grid-template-columns: 1fr; }
   .misc dt { margin-top: 6px; }
 }
+
+/* Tagline decode (js/tagline.js) */
+#tagline .tok { position: relative; display: inline-block; border-radius: 3px; transition: background-color .3s; }
+#tagline .tok.pending { color: transparent; }
+#tagline .tok:hover { background: color-mix(in srgb, var(--orange) 12%, transparent); }
+#tagline .cands, #tagline .lp { position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap; pointer-events: none;
+  user-select: none; font: normal 11px/1.35 var(--mono); opacity: 0; transition: opacity .15s; }
+#tagline .cands { bottom: calc(100% + 2px); display: flex; flex-direction: column; color: var(--faint); background: var(--bg);
+  padding: 3px 7px; border-radius: 5px; box-shadow: 0 0 0 1px var(--rule), 0 4px 12px rgba(0, 0, 0, .08); }
+#tagline .cands b { color: var(--orange); font-weight: 600; }
+#tagline .cands.on { opacity: 1; }
+#tagline .lp { top: 100%; color: var(--teal); }
+#tagline .cands > *::before, #tagline .lp::before { content: attr(data-t); }
+#tagline .tok:hover .lp { opacity: 1; }
