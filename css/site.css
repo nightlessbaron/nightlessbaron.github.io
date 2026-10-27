@@ -111,6 +111,8 @@ footer .who { display: block; margin-bottom: 10px; }
 }
 
 /* Tagline decode (js/tagline.js) */
+/* The hidden overlays still occupy layout; clip sideways so they can't widen a phone page. */
+#tagline { overflow-x: clip; }
 #tagline .tok { position: relative; display: inline-block; border-radius: 3px; transition: background-color .3s; }
 #tagline .tok.pending { color: transparent; }
 #tagline .tok:hover { background: color-mix(in srgb, var(--orange) 12%, transparent); }
@@ -126,7 +128,7 @@ footer .who { display: block; margin-bottom: 10px; }
 
 /* pass@k easter egg (js/passk.js): never blocks clicks, never shifts layout */
 canvas.passk { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
-.passk-hud { position: absolute; right: 0; bottom: -18px; pointer-events: none; font: 600 11px/1.3 var(--mono); color: var(--green); }
+.passk-hud { position: absolute; right: 0; pointer-events: none; font: 600 11px/1.3 var(--mono); color: var(--green); }
 .passk-hud.miss { color: #D03A8A; }
 #name { cursor: crosshair; text-decoration: underline dashed transparent 1px; text-underline-offset: 6px; transition: text-decoration-color .2s; }
 #name:hover { text-decoration-color: var(--faint); }

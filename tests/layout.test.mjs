@@ -45,3 +45,12 @@ test('first-load weight under 1.5 MB with no video requested', () => withPage({}
   assert.ok(total < 1.5e6, `first load ${total} bytes`);
   assert.equal(sizes.filter(([u]) => /\.(mp4|webm)$/.test(u)).length, 0);
 }));
+
+for (const width of [360, 320]) {
+  test(`no horizontal scroll on a ${width}px phone after the tagline decodes`, () => withPage({ width, height: 780, hasTouch: true }, async (page, base) => {
+    await page.goto(base + '/');
+    await page.waitForTimeout(3000);
+    const sw = await page.evaluate(() => document.documentElement.scrollWidth);
+    assert.ok(sw <= width, `scrollWidth ${sw} > ${width}`);
+  }));
+}

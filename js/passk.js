@@ -24,9 +24,14 @@ export function initPassK(nameEl, host) {
 
   function sample() {
     const hr = host.getBoundingClientRect(), nr = nameEl.getBoundingClientRect();
-    const ox = nr.right - hr.left + 8, oy = nr.top - hr.top + nr.height / 2;
+    // Fan out to the right of the name when there's room (desktop); on narrow screens start
+    // under the name's left edge so the rollouts get a comparable distance to travel.
+    const roomy = w - 12 - (nr.right - hr.left + 8) >= 150;
+    const ox = roomy ? nr.right - hr.left + 8 : nr.left - hr.left;
+    const oy = roomy ? nr.top - hr.top + nr.height / 2 : nr.bottom - hr.top + 8;
     // A narrow target off the start line: few of 8 rollouts reach it, many of 64 do.
     zone = { x: w - 40, y0: oy + 56, y1: oy + 86 };
+    hud.style.top = `${zone.y1 + 8}px`; // readout sits just under the reward zone, near the action
     trajs = Array.from({ length: n }, () => {
       const pts = [[ox, oy]];
       let x = ox, y = oy, vy = (Math.random() - .5) * 2.2;
@@ -46,7 +51,7 @@ export function initPassK(nameEl, host) {
     g.clearRect(0, 0, w, h);
     if (t >= END) { hud.textContent = ''; return; }
     const grow = Math.min(1, t / GROW), fade = t > HOLD ? 1 - (t - HOLD) / (END - HOLD) : 1;
-    const css = getComputedStyle(host);
+    const css = getComputedStyle(host), teal = css.getPropertyValue('--teal').trim();
     g.globalAlpha = fade;
     g.fillStyle = 'rgba(47,143,71,.10)';
     g.fillRect(zone.x, zone.y0, 28, zone.y1 - zone.y0);
@@ -57,11 +62,13 @@ export function initPassK(nameEl, host) {
     for (const p of trajs) {
       const end = Math.max(1, Math.floor((p.length - 1) * grow)), ok = grow === 1 && hits(p);
       if (ok) k++;
-      g.strokeStyle = ok ? 'rgba(47,143,71,.9)' : `rgba(42,81,96,${n > 16 ? .18 : .32})`;
+      g.strokeStyle = ok ? 'rgba(47,143,71,.9)' : teal; // theme-aware, so misses stay visible in dark mode
+      g.globalAlpha = fade * (ok ? 1 : n > 16 ? .35 : .55);
       g.lineWidth = ok ? 1.6 : 1;
       g.beginPath();
       p.slice(0, end + 1).forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
       g.stroke();
+      g.globalAlpha = fade;
     }
     g.globalAlpha = 1;
     hud.textContent = grow < 1 ? `n = ${n} rollouts · sampling…`
