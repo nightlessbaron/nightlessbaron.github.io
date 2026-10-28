@@ -16,6 +16,11 @@
   --orange: #F44900;
   --teal: #2A5160;
   --green: #2f8f47;
+  --contour: 42, 81, 96;
+  --contour-alpha: .065;
+  --bot-shell: #f6f3ec;
+  --bot-visor: #1d2b33;
+  --bot-eye: #8ef0ff;
   --serif: Georgia, "Times New Roman", serif;
   --sans: "Lato", "Helvetica Neue", Arial, sans-serif;
   --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
@@ -36,6 +41,9 @@
     --core-bg: #1d2a3d;
     --core-fg: #9cc4ff;
     --teal: #7fb3c4;
+    --contour: 127, 179, 196;
+    --contour-alpha: .058;
+    --bot-shell: #e9e5dc;
   }
 }
 
@@ -126,13 +134,25 @@ footer .who { display: block; margin-bottom: 10px; }
 #tagline .cands > *::before, #tagline .lp::before { content: attr(data-t); }
 #tagline .tok:hover .lp { opacity: 1; }
 
-/* pass@k easter egg (js/passk.js): never blocks clicks, never shifts layout */
-canvas.passk { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
-.passk-hud { position: absolute; right: 0; pointer-events: none; font: 600 11px/1.3 var(--mono); color: var(--green); }
-.passk-hud.miss { color: #D03A8A; }
-#name { cursor: crosshair; text-decoration: underline dashed transparent 1px; text-underline-offset: 6px; transition: text-decoration-color .2s; }
-#name:hover { text-decoration-color: var(--faint); }
-@media (prefers-reduced-motion: reduce) { #name { cursor: auto; } #name:hover { text-decoration-color: transparent; } }
+/* Contour background (js/contours.js): a fixed, static canvas under everything */
+canvas.topo { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: -1; pointer-events: none; }
+
+/* Robot (js/robot.js): fixed to the bottom edge; JS sets its x position */
+.bot { position: fixed; bottom: 6px; left: 0; width: 76px; height: 92px; z-index: 40; cursor: pointer;
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; }
+.bot svg { width: 100%; height: 100%; overflow: visible; display: block; }
+.bot .bubble { position: absolute; bottom: 96px; left: 0; width: 230px; padding: 9px 12px; border-radius: 12px; pointer-events: none;
+  background: var(--bg); color: var(--text); border: 1px solid var(--rule); box-shadow: 0 6px 20px rgba(0, 0, 0, .12);
+  font: 13px/1.45 var(--sans); opacity: 0; transform: translateY(6px) scale(.96); transition: opacity .18s, transform .18s; }
+.bot .bubble.on { opacity: 1; transform: none; }
+.bot .bubble small { display: block; margin-bottom: 3px; color: var(--faint); font: 600 10px var(--mono); letter-spacing: .04em; }
+.bot .bubble::after { content: ""; position: absolute; bottom: -6px; left: var(--tail, 50%); width: 10px; height: 10px; background: var(--bg);
+  border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); transform: translateX(-50%) rotate(45deg); }
+.bot-tag { position: fixed; z-index: 41; pointer-events: none; white-space: nowrap; padding: 2px 6px; border-radius: 6px;
+  font: 600 10.5px var(--mono); color: var(--teal); background: var(--bg); border: 1px solid var(--rule); transition: opacity .3s; }
+.bot-fx { position: fixed; z-index: 41; pointer-events: none; font: 700 15px/1 var(--sans); }
+@media (max-width: 600px) { .bot { width: 60px; height: 73px; } .bot .bubble { bottom: 76px; } }
+@media print { .bot, canvas.topo { display: none; } }
 
 /* /travel (unlisted) */
 .travel .back { margin: 0 0 18px; }
