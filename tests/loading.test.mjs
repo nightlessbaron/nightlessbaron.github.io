@@ -2,6 +2,39 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { withPage } from './helpers/browser.mjs';
 
+const UMAMI_SCRIPT = 'https://cloud.umami.is/script.js', UMAMI_ID = '9cc9630e-58da-45b4-a135-88c8f41d3212';
+
+// Visitor stats (Umami, cookieless). The test helper serves a pinned copy of Umami's script and
+// answers everything else locally, so these tests run offline and never add to the real stats.
+for (const path of ['/', '/travel/', '/no-such-page']) {
+  test(`${path} carries the visitor counter, limited to the real domain`, () => withPage({}, async (page, base) => {
+    await page.goto(base + path);
+    const s = await page.$eval(`script[src="${UMAMI_SCRIPT}"]`, el => [el.dataset.websiteId, el.dataset.domains, el.defer]);
+    assert.deepEqual(s, [UMAMI_ID, 'nightlessbaron.github.io', true]);
+  }));
+}
+
+test('local previews are not counted', () => withPage({}, async (page, base) => {
+  const sent = [];
+  await page.route('**/api/send', r => { sent.push(r.request().url()); r.fulfill({ status: 200, body: '{}' }); });
+  await page.goto(base + '/', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1000);
+  assert.deepEqual(sent, []);
+}));
+
+test('a visit on nightlessbaron.github.io is counted with the right site id and page', () => withPage({}, async (page, base) => {
+  const sent = [];
+  // Serve the real domain from the local copy, and catch the hit instead of sending it.
+  await page.route('https://nightlessbaron.github.io/**', async r => r.fulfill({ response: await page.request.get(base + new URL(r.request().url()).pathname) }));
+  await page.route('**/api/send', r => { sent.push(r.request().postDataJSON()); r.fulfill({ status: 200, contentType: 'application/json', body: '{}' }); });
+  await page.goto('https://nightlessbaron.github.io/');
+  for (let i = 0; i < 50 && !sent.length; i++) await page.waitForTimeout(100);
+  assert.equal(sent.length, 1, 'one page view sent');
+  assert.equal(sent[0].payload.website, UMAMI_ID);
+  assert.equal(sent[0].payload.hostname, 'nightlessbaron.github.io');
+  assert.equal(new URL(sent[0].payload.url, 'https://nightlessbaron.github.io').pathname, '/');
+}));
+
 // Total layout shift while the home page loads. Fonts are held back 400 ms, as on a slow
 // connection, so a late font swap that reflows the text would show up here.
 for (const [width, height] of [[1280, 900], [390, 800]]) {
@@ -19,11 +52,11 @@ for (const [width, height] of [[1280, 900], [390, 800]]) {
   }));
 }
 
-test('fonts are served from the site itself, so loading the page contacts no one else', () => withPage({}, async (page, base) => {
+test('fonts are served from the site itself, so loading the page contacts no one but the visitor counter', () => withPage({}, async (page, base) => {
   const urls = [];
   page.on('request', r => urls.push(r.url()));
   await page.goto(base + '/', { waitUntil: 'networkidle' });
-  assert.deepEqual(urls.filter(u => !u.startsWith(base) && !u.startsWith('data:')), []);
+  assert.deepEqual(urls.filter(u => !u.startsWith(base) && !u.startsWith('data:') && u !== UMAMI_SCRIPT), []);
   const fonts = urls.filter(u => /\/fonts\/.+\.woff2$/.test(u));
   assert.ok(fonts.length >= 2, `self-hosted fonts requested: ${fonts}`);
   const loaded = await page.evaluate(() => [...document.fonts].filter(f => f.family.replace(/"/g, '') === 'Lato' && f.status === 'loaded').length);
