@@ -81,6 +81,28 @@ test('link previews use a large 1200×630 card', () => withPage({}, async (page,
   assert.deepEqual(size, [1200, 630]);
 }));
 
+for (const colorScheme of ['light', 'dark']) {
+  test(`the phone browser bar matches the page background (${colorScheme})`, () => withPage({ colorScheme }, async (page, base) => {
+    for (const path of ['/', '/travel/', '/no-such-page']) {
+      await page.goto(base + path);
+      const [meta, bg] = await page.evaluate(() => {
+        const m = [...document.querySelectorAll('meta[name="theme-color"]')].find(m => !m.media || matchMedia(m.media).matches);
+        const c = document.createElement('canvas').getContext('2d'); // normalise both colours to one notation
+        const norm = x => { c.fillStyle = x; return c.fillStyle; };
+        return [m && norm(m.content), norm(getComputedStyle(document.body).backgroundColor)];
+      });
+      assert.equal(meta, bg, path);
+    }
+  }));
+}
+
+test('profile links are marked rel="me"', () => withPage({}, async (page, base) => {
+  await page.goto(base + '/');
+  const rels = await page.$$eval('.links a[href^="http"]', as => as.map(a => [a.hostname, a.rel]));
+  assert.ok(rels.length >= 4);
+  for (const [host, rel] of rels) assert.match(rel, /\bme\b/, host);
+}));
+
 test('structured data describes Varad and matches the profile links on the page', () => withPage({}, async (page, base) => {
   await page.goto(base + '/');
   const ld = JSON.parse(await page.$eval('script[type="application/ld+json"]', s => s.textContent));
