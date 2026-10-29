@@ -33,8 +33,7 @@ export async function withPage(opts = {}, fn) {
     page.on('console', m => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) page.__errors.push('console: ' + m.text()); });
     page.on('response', r => {
       const u = new URL(r.url());
-      // The browser's implicit /favicon.ico probe is not page content.
-      if (u.origin === server.url && r.status() >= 400 && u.pathname !== '/favicon.ico') page.__errors.push(`${r.status()} ${u.pathname}`);
+      if (u.origin === server.url && r.status() >= 400) page.__errors.push(`${r.status()} ${u.pathname}`);
     });
     await fn(page, server.url);
   } finally {

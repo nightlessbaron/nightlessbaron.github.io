@@ -113,6 +113,23 @@ test('on a phone, a tap shows a one-liner and nothing scrolls sideways', () => w
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth) <= 320);
 }));
 
+test('on a phone it waits in the corner instead of walking, and still does tricks', () => withPage({ hasTouch: true, width: 390, height: 800 }, async (page, base) => {
+  await page.goto(base + '/');
+  await page.waitForTimeout(400);
+  const box = () => page.evaluate(() => { const r = document.querySelector('.bot').getBoundingClientRect(); return { left: r.left, right: r.right, top: r.top }; });
+  const b0 = await box();
+  assert.ok(b0.right > 360 && b0.right <= 390, `starts in the bottom-right corner (right edge ${b0.right})`);
+  await scrollToEnd(page);
+  await page.waitForTimeout(1200);
+  assert.equal(Math.round((await box()).left), Math.round(b0.left), 'it does not walk');
+  // the end of the page scrolls clear of it, so nothing stays hidden underneath
+  const footerBottom = await page.$eval('footer', f => f.lastElementChild.getBoundingClientRect().bottom);
+  assert.ok(footerBottom <= (await box()).top, `footer ends at ${footerBottom}, robot starts at ${(await box()).top}`);
+  await page.locator('.bot').tap(); // first tap: a one-liner
+  await page.locator('.bot').tap(); // second tap: a trick
+  assert.match(await page.evaluate(() => document.querySelector('.bot').dataset.last), /^(backflip|faceplant|dance|spin|hearts)$/);
+}));
+
 test('with reduced motion it stays in the corner and a click is just a hop', () => withPage({ reducedMotion: true }, async (page, base) => {
   await page.goto(base + '/');
   await page.waitForTimeout(400);

@@ -1,7 +1,7 @@
 // A small robot that walks along the bottom of the screen as you scroll (its position is your
 // reading progress). Hover it for a one-liner; click it for a trick. Purely decorative: hidden
-// from screen readers, never focusable, silent until clicked. With reduced motion it sits still
-// in the corner and a click is just a hop.
+// from screen readers, never focusable, silent until clicked. On phones it waits in the corner,
+// where it can't wander over the text; with reduced motion it does that too and a click is just a hop.
 const LINES = [
   ['FUN FACT', 'I fell over about 10,000 times in simulation before you met me. Please don’t bring it up.'],
   ['MY REWARD FUNCTION', '+1 every time you scroll. You are, technically, my policy.'],
@@ -59,7 +59,8 @@ export function initRobot({ reduce = matchMedia('(prefers-reduced-motion: reduce
   const bubble = bot.querySelector('.bubble');
   const P = Object.fromEntries([...bot.querySelectorAll('[data-p]')].map(el => [el.dataset.p, el]));
 
-  let x = reduce ? innerWidth - 90 : 12, facing = reduce ? -1 : 1, phase = 0, lastT = performance.now(), speed = 0;
+  const phone = matchMedia('(max-width: 600px)'), parked = () => reduce || phone.matches;
+  let x = parked() ? innerWidth - bot.offsetWidth - 14 : 12, facing = parked() ? -1 : 1, phase = 0, lastT = performance.now(), speed = 0;
   let hop = 0, hopV = 0, antA = 0, antV = 0, mouse = null, nextBlink = 1.5, blinkT = -1, happy = false;
   let trick = null, facing0 = 1, combo = 0, lastClick = 0, order = [], lastLine = -1, pointer = 'mouse', ac;
   let calm = false, lastMove = -1e9;
@@ -86,7 +87,7 @@ export function initRobot({ reduce = matchMedia('(prefers-reduced-motion: reduce
 
   function frame(now) {
     requestAnimationFrame(frame);
-    const W = innerWidth, goal = reduce ? W - bw - 14 : 12 + (W - bw - 24) * Math.min(1, scrollY / maxScroll);
+    const W = innerWidth, goal = parked() ? W - bw - 14 : 12 + (W - bw - 24) * Math.min(1, scrollY / maxScroll);
     // Standing still with nobody around: a dozen updates a second is plenty for a head sway and a blink.
     if (calm && Math.abs(goal - x) < .05 && now - lastT < 80) return;
     const dt = Math.min(.05, (now - lastT) / 1000); lastT = now;

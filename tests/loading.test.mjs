@@ -115,3 +115,18 @@ test('structured data describes Varad and matches the profile links on the page'
     assert.ok(ld.sameAs.some(u => u.includes(site)), `sameAs has ${site}`);
   for (const u of ld.sameAs) assert.ok(links.includes(u), `${u} is also linked on the page`);
 }));
+
+test('the browser tab and home-screen icons are the robot', () => withPage({}, async (page, base) => {
+  for (const path of ['/', '/travel/', '/no-such-page']) {
+    await page.goto(base + path);
+    const icons = await page.$$eval('link[rel~="icon"], link[rel="apple-touch-icon"]', ls => ls.map(l => [l.rel, l.type, l.href]));
+    const svg = icons.find(([r, t]) => r === 'icon' && t === 'image/svg+xml');
+    const touch = icons.find(([r]) => r === 'apple-touch-icon');
+    assert.ok(svg && touch, `${path}: ${JSON.stringify(icons)}`);
+    assert.match(await (await page.request.get(svg[2])).text(), /<svg[^>]*viewBox/);
+    const size = await page.evaluate(src => new Promise(ok => { const i = new Image(); i.onload = () => ok([i.naturalWidth, i.naturalHeight]); i.src = src; }), touch[2]);
+    assert.deepEqual(size, [180, 180], `${path} apple-touch-icon`);
+  }
+  const ico = await page.request.get(base + '/favicon.ico');
+  assert.equal(ico.status(), 200, 'browsers that ask for /favicon.ico get one');
+}));

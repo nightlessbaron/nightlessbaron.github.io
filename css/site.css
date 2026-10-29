@@ -96,7 +96,7 @@ p { margin: 0 0 10px; }
 .s { font-size: 13.8px; margin: 6px 0 0; }
 .pill { display: inline-block; font: 700 10.5px/1 var(--sans); letter-spacing: .05em; padding: 3px 7px; border-radius: 9px; margin-left: 8px; vertical-align: 2px; white-space: nowrap; }
 .pill.lead { background: var(--lead-bg); color: var(--lead-fg); }
-.pill.core, .pill.cite { background: var(--core-bg); color: var(--core-fg); }
+.pill.core { background: var(--core-bg); color: var(--core-fg); }
 
 .thumb { position: relative; width: 180px; aspect-ratio: 16 / 10; flex-shrink: 0; border-radius: 6px; overflow: hidden; background: var(--thumb-bg); box-shadow: 0 0 0 1px var(--rule); }
 .row.hl .thumb { width: 240px; aspect-ratio: 16 / 9; }
@@ -126,7 +126,7 @@ footer .who { display: block; margin-bottom: 10px; }
 }
 
 @media (max-width: 600px) {
-  .page { padding: 24px 16px; }
+  .page { padding: 24px 16px 96px; } /* room at the end so the footer clears the robot's corner */
   .hdr { flex-direction: column-reverse; gap: 16px; }
   .photo { width: 150px; height: 150px; }
   #name { font-size: 30px; }

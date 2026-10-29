@@ -46,8 +46,17 @@ test('every paper row links to the paper (manuscripts in review aside)', () => w
   assert.ok((await links('DocQIR-Emb')).includes('https://proceedings.mlr.press/v322/ho26a.html'));
   const mf = await links('MetaFaaS');
   assert.ok(mf.includes('https://doi.org/10.1145/3530050.3532926'), 'MetaFaaS links its ACM DOI');
-  assert.ok(mf.includes('https://patents.google.com/patent/US20230419180A1/en'), 'and its patent application');
+  assert.ok(mf.includes('https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/12718151'), 'and its granted patent');
+  const mfText = await page.$$eval('.row', rows => rows.find(r => r.textContent.includes('MetaFaaS')).textContent);
+  assert.match(mfText, /US patent 12,718,151/);
+  assert.doesNotMatch(mfText, /patent application/);
   assert.ok((await links('GEMS')).includes('https://patents.google.com/patent/US20240160949A1/en'), 'GEMS links its patent application');
+}));
+
+test('no citation-count badges', () => withPage({}, async (page, base) => {
+  await page.goto(base + '/');
+  assert.doesNotMatch(await page.textContent('main'), /citations/i);
+  assert.equal(await page.locator('.pill.cite').count(), 0);
 }));
 
 test('copy, contact links and forbidden strings', () => withPage({}, async (page, base) => {
