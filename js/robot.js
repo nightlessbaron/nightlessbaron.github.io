@@ -21,6 +21,7 @@ const LINES = [
 const TRICKS = [['backflip', 'backflip.exe ✓'], ['faceplant', ''], ['dance', 'dance mode'], ['spin', 'spin to win'], ['hearts', '♥']];
 
 const SVG = `<svg viewBox="0 0 100 120" focusable="false"><g data-p="trick"><g data-p="flip">
+  <g class="hit" fill="transparent"><rect x="34" y="0" width="54" height="46" rx="14"/><rect x="24" y="40" width="50" height="46" rx="18"/><rect x="28" y="76" width="56" height="44" rx="10"/></g>
   <g fill="none" stroke-linecap="round" stroke-linejoin="round">
     <path data-p="legB" stroke="var(--teal)" stroke-width="4.5" opacity=".55"/><path data-p="legF" stroke="var(--teal)" stroke-width="4.5"/>
   </g>
@@ -198,8 +199,11 @@ export function initRobot({ reduce = matchMedia('(prefers-reduced-motion: reduce
     } catch { /* no audio is fine */ }
   }
 
-  bot.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') talk(); });
-  bot.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') quiet(); });
+  // Only the robot's outline takes the pointer (.hit), so the pointer can slip off it between parts;
+  // a short grace period keeps that from closing the bubble and drawing a new line.
+  let leaveT;
+  bot.addEventListener('pointerenter', e => { if (e.pointerType !== 'mouse') return; clearTimeout(leaveT); if (!bubble.classList.contains('on')) talk(); });
+  bot.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') leaveT = setTimeout(quiet, 150); });
   bot.addEventListener('pointerdown', e => { pointer = e.pointerType; });
   document.addEventListener('pointerdown', e => { if (!bot.contains(e.target)) quiet(); });
   bot.addEventListener('click', () => {

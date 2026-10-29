@@ -20,6 +20,9 @@ const CANDIDATES = {
 const pct = p => `${Math.round(p * 100)}%`;
 
 export function decodeTagline(el, candidates = CANDIDATES, { stepMs = 150, holdMs = 260, animate = true } = {}) {
+  // If the sentence is already on screen (the script arrived after the CSS fallback showed it),
+  // don't blank it and type it again.
+  if (getComputedStyle(el).visibility === 'visible') animate = false;
   const words = el.textContent.trim().split(/\s+/);
   el.textContent = '';
   el.classList.add('ready'); // un-hides the tagline (see site.css); the tokens below start out blank
@@ -50,6 +53,7 @@ export function decodeTagline(el, candidates = CANDIDATES, { stepMs = 150, holdM
   if (!animate) return Promise.resolve();
   return new Promise(done => toks.forEach((tok, i) => setTimeout(() => {
     const stack = tok.querySelector('.cands');
+    toks.forEach(t => t !== tok && t.querySelector('.cands').classList.remove('on')); // one pop-up at a time
     stack.classList.add('on');
     tok.classList.remove('pending');
     setTimeout(() => {

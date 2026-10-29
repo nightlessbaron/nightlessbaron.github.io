@@ -9,8 +9,8 @@ const UMAMI_SCRIPT = 'https://cloud.umami.is/script.js', UMAMI_ID = '9cc9630e-58
 for (const path of ['/', '/travel/', '/no-such-page']) {
   test(`${path} carries the visitor counter, limited to the real domain`, () => withPage({}, async (page, base) => {
     await page.goto(base + path);
-    const s = await page.$eval(`script[src="${UMAMI_SCRIPT}"]`, el => [el.dataset.websiteId, el.dataset.domains, el.defer]);
-    assert.deepEqual(s, [UMAMI_ID, 'nightlessbaron.github.io', true]);
+    const s = await page.$eval(`script[src="${UMAMI_SCRIPT}"]`, el => [el.dataset.websiteId, el.dataset.domains, el.dataset.doNotTrack, el.defer]);
+    assert.deepEqual(s, [UMAMI_ID, 'nightlessbaron.github.io', 'true', true]);
   }));
 }
 

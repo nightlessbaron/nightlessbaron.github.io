@@ -44,9 +44,12 @@ test('unknown paths get a styled 404', () => withPage({}, async (page, base) => 
   assert.deepEqual(page.__errors, []);
 }));
 
-test('robots.txt hides /travel/ and the sitemap omits it', () => withPage({}, async (page, base) => {
+// /travel/ stays unlisted through its own noindex. robots.txt must not block it: a blocked crawler never
+// sees the noindex (so the bare URL can still be indexed), and robots.txt is public, so it would advertise the page.
+test('the travel page is unlisted by noindex, not advertised in robots.txt or the sitemap', () => withPage({}, async (page, base) => {
   const robots = await (await page.request.get(base + '/robots.txt')).text();
-  assert.match(robots, /Disallow: \/travel\//);
+  assert.doesNotMatch(robots, /travel/);
+  assert.match(await (await page.request.get(base + '/travel/')).text(), /<meta name="robots" content="noindex/);
   assert.match(robots, /Sitemap: https:\/\/nightlessbaron\.github\.io\/sitemap\.xml/);
   const sm = await page.request.get(base + '/sitemap.xml');
   assert.equal(sm.status(), 200);

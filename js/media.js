@@ -2,6 +2,7 @@
 // The still image stays visible until the video is actually playing, so a slow
 // network never shows an empty box. Videos are preload="none" until first use.
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const touch = matchMedia('(hover: none)').matches;
 
 function controller(thumb) {
   const video = thumb.querySelector('video.anim');
@@ -42,13 +43,23 @@ export function initMedia(root = document) {
       continue;
     }
 
-    // Mouse hover and keyboard focus play while inside the row.
-    row.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') ctl.start(); });
-    row.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') ctl.stop(); });
+    // Mouse hover and keyboard focus play while inside the row. The hover has to rest a moment first,
+    // so a cursor passing over on its way down the page doesn't start downloading the video.
+    let hoverT;
+    row.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') hoverT = setTimeout(ctl.start, 150); });
+    row.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') { clearTimeout(hoverT); ctl.stop(); } });
     row.addEventListener('focusin', ctl.start);
     row.addEventListener('focusout', e => { if (!row.contains(e.relatedTarget)) ctl.stop(); });
-    // Touch has no hover: a tap on the thumbnail toggles.
+    // Touch has no hover: a tap on the thumbnail toggles, and a small ▶ says so.
     thumb.addEventListener('pointerup', e => { if (e.pointerType !== 'mouse') ctl.toggle(); });
+    if (touch) {
+      const hint = document.createElement('span');
+      hint.className = 'play'; hint.setAttribute('aria-hidden', 'true'); hint.textContent = '▶';
+      const video = thumb.querySelector('video');
+      video.addEventListener('play', () => { hint.textContent = '❚❚'; });
+      video.addEventListener('pause', () => { hint.textContent = '▶'; });
+      thumb.append(hint);
+    }
   }
 }
 

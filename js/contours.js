@@ -4,7 +4,12 @@ const LEVELS = 22, CELL = 7;
 
 // The map is drawn as tall as the screen, not the window: on phones the window grows when the
 // address bar slides away, and a map sized to the window would have to be redrawn (and would move).
-const size = () => [innerWidth, Math.max(innerHeight, screen.height || 0), Math.min(2, devicePixelRatio || 1)];
+// Pixel density is capped so the canvas stays around 4 megapixels: lines this faint don't need retina
+// sharpness, and a full-density canvas on a big 2x display would hold ~60 MB of memory.
+const size = () => {
+  const W = innerWidth, H = Math.max(innerHeight, screen.height || 0);
+  return [W, H, Math.min(2, devicePixelRatio || 1, Math.sqrt(4e6 / (W * H)))];
+};
 
 export function drawContours(canvas) {
   const [W, H, d] = size();

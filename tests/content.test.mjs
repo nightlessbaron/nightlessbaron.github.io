@@ -23,7 +23,8 @@ test('highlighted research rows in order with role pills', () => withPage({}, as
 test('earlier research is shown in full with corrected details', () => withPage({}, async (page, base) => {
   await page.goto(base + '/');
   const titles = await rowTitles(page, '#earlier .row');
-  assert.ok(titles.length >= 13, `expected >= 13 earlier rows, got ${titles.length}`);
+  assert.ok(titles.length >= 11, `expected >= 11 earlier rows, got ${titles.length}`);
+  assert.ok(await page.locator('.row').count() >= 22, 'no paper went missing when LLM-era rows moved to Research');
   for (const t of ['Multiwinner Voting', 'Parkinson', 'Digital Image Noise Estimation', 'GEMS', 'MetaFaaS'])
     assert.ok(titles.some(x => x.includes(t)), `missing earlier row: ${t}`);
   const row = t => page.$$eval('#earlier .row', (rows, t) => {

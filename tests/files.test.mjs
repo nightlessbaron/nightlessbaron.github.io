@@ -24,5 +24,5 @@ test('real files are kept and the new CV is added', () => {
 
 test('unlinked leftovers are gone: the old resume and the full-size ACM photos', () => {
   // The travel page uses downsized copies of the ACM photos (media/travel/).
-  for (const p of ['files/Resume_Academic_v9.pdf', 'images/ACM_School']) assert.ok(!has(p), `${p} should be removed`);
+  for (const p of ['files/Resume_Academic_v9.pdf', 'images/ACM_School', 'images/profile.png']) assert.ok(!has(p), `${p} should be removed`);
 });
