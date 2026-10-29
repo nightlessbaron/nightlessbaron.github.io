@@ -18,6 +18,11 @@ test('real files are kept and the new CV is added', () => {
     'files/thesis/Geolocation_Extraction_for_Twitter_Final.pdf', 'files/Multiwinner_Voting_with_Admissible_Sets.pdf',
     'files/Lecture_Series_on_Fair_Division.pdf', 'files/Lecture_Series_on_Computational_Social_Choice.pdf',
     'files/teaching/ACMW_Summer_School_AGT_2019.pdf', 'files/code/DIP_Repro.m',
-    'images/varad.jpg', 'images/Places/nagpur.jpg', 'images/ACM_School/grp_pic.jpg'];
+    'images/varad.jpg', 'images/Places/nagpur.jpg', 'files/thesis/Geolocation_Extraction_for_Twitter.pdf'];
   for (const p of keep) assert.ok(has(p), `${p} should exist`);
+});
+
+test('unlinked leftovers are gone: the old resume and the full-size ACM photos', () => {
+  // The travel page uses downsized copies of the ACM photos (media/travel/).
+  for (const p of ['files/Resume_Academic_v9.pdf', 'images/ACM_School']) assert.ok(!has(p), `${p} should be removed`);
 });

@@ -12,13 +12,14 @@ const CHROMIUM = process.env.CHROMIUM_PATH
 
 export async function withPage(opts = {}, fn) {
   const { width = 1280, height = 900, reducedMotion = false, colorScheme = 'light',
-    javaScriptEnabled = true, hasTouch = false } = opts;
+    javaScriptEnabled = true, hasTouch = false, screen } = opts;
   const server = await startServer(ROOT);
   const browser = await chromium.launch({ executablePath: CHROMIUM });
   try {
+    // `screen` lets a phone test have a screen taller than its viewport, as when the address bar is showing.
     const context = await browser.newContext({
       viewport: { width, height }, reducedMotion: reducedMotion ? 'reduce' : 'no-preference',
-      colorScheme, javaScriptEnabled, hasTouch, isMobile: hasTouch,
+      colorScheme, javaScriptEnabled, hasTouch, isMobile: hasTouch, ...(screen && { screen }),
     });
     const page = await context.newPage();
     page.__errors = [];

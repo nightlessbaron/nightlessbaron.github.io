@@ -25,6 +25,38 @@ test('it walks right as the page scrolls down, and stays on screen at the end', 
   assert.ok(r.right <= 1280, `right edge ${r.right}`);
 }));
 
+test('standing idle is cheap, and it still wakes up the moment you scroll', () => withPage({}, async (page, base) => {
+  await page.goto(base + '/');
+  await page.waitForTimeout(3500); // let the tagline finish decoding
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Performance.enable');
+  const layouts = async () => (await cdp.send('Performance.getMetrics')).metrics.find(m => m.name === 'LayoutCount').value;
+  const a = await layouts();
+  await page.waitForTimeout(3000);
+  const perSec = (await layouts() - a) / 3;
+  assert.ok(perSec < 25, `${perSec.toFixed(0)} layouts a second while nothing is happening`);
+  const x0 = await botX(page);
+  await scrollToEnd(page);
+  await page.waitForTimeout(1500);
+  assert.ok(await botX(page) > x0 + 600, 'it walked after the scroll');
+}));
+
+// The first translate() in the eyes' transform is where they look: [right, down].
+const gaze = page => page.$eval('.bot [data-p=eyesOpen]', el => el.getAttribute('transform').match(/-?[\d.]+/g).slice(0, 2).map(Number));
+
+test('its eyes follow the cursor', () => withPage({}, async (page, base) => {
+  await page.goto(base + '/');
+  await page.waitForTimeout(400);
+  await page.mouse.move(1200, 60); // up and to the right of the robot
+  await page.waitForTimeout(300);
+  const [gx1, gy1] = await gaze(page);
+  assert.ok(gx1 > 1 && gy1 < -.3, `looking at ${gx1},${gy1}`);
+  await page.mouse.move(2, 898); // down and to its left
+  await page.waitForTimeout(300);
+  const [gx2, gy2] = await gaze(page);
+  assert.ok(gx2 < -.5 && gy2 > .3, `looking at ${gx2},${gy2}`);
+}));
+
 test('hovering shows a one-liner in a speech bubble', () => withPage({}, async (page, base) => {
   await page.goto(base + '/');
   await page.waitForTimeout(400);

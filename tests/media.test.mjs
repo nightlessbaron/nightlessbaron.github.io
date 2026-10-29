@@ -13,15 +13,26 @@ test('hover media exist as mp4 + webm + poster within size budgets', () => {
   for (const m of MEDIA) {
     for (const ext of ['.mp4', '.webm']) assert.ok(fs.existsSync(path.join(ROOT, 'media', m + ext)), `media/${m}${ext}`);
     assert.ok(size(`media/${m}.mp4`) < 1.5e6, `media/${m}.mp4 under 1.5 MB`);
-    assert.ok(size(`media/${m}-poster.png`) < 4e5, `media/${m}-poster.png under 400 KB`);
+    assert.ok(size(`media/${m}-poster.webp`) < 1e5, `media/${m}-poster.webp under 100 KB`);
   }
 });
 
 test('still thumbnails for the other recent rows exist', () => {
-  for (const s of STILLS) assert.ok(size(`media/${s}.png`) < 4e5, `media/${s}.png under 400 KB`);
+  for (const s of STILLS) assert.ok(size(`media/${s}.webp`) < 1e5, `media/${s}.webp under 100 KB`);
 });
 
-test('RL360 Fig 1 source is GPU-free and stripped to Fig 1', () => {
+test('the home page uses WebP for every thumbnail, poster and the photo', () => {
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const imgs = [...html.matchAll(/<img[^>]*\ssrc="([^"]+)"|\sposter="([^"]+)"/g)].map(m => m[1] || m[2]);
+  assert.ok(imgs.length >= 15, `found ${imgs.length} images`);
+  for (const src of imgs) {
+    assert.match(src, /\.webp$/, src);
+    assert.ok(size(src) < 1e5, `${src} under 100 KB`);
+  }
+});
+
+// The RL360 figure source lives in ../tools, outside the repo, so a fresh clone skips this check.
+test('RL360 Fig 1 source is GPU-free and stripped to Fig 1', { skip: !fs.existsSync(TOOLS) && 'needs ../tools' }, () => {
   const src = fs.readFileSync(path.join(TOOLS, 'rl360-export/fig1.html'), 'utf8');
   assert.doesNotMatch(src, /H200/);
   assert.doesNotMatch(src, /gpus:/);

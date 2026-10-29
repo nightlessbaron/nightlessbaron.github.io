@@ -2,9 +2,14 @@
 // light/dark switch), never animated. The ink colour comes from the --contour CSS token.
 const LEVELS = 22, CELL = 7;
 
+// The map is drawn as tall as the screen, not the window: on phones the window grows when the
+// address bar slides away, and a map sized to the window would have to be redrawn (and would move).
+const size = () => [innerWidth, Math.max(innerHeight, screen.height || 0), Math.min(2, devicePixelRatio || 1)];
+
 export function drawContours(canvas) {
-  const d = Math.min(2, devicePixelRatio || 1), W = innerWidth, H = innerHeight;
+  const [W, H, d] = size();
   canvas.width = W * d; canvas.height = H * d;
+  canvas.style.height = `${H}px`;
   const g = canvas.getContext('2d');
   g.setTransform(d, 0, 0, d, 0, 0);
   g.clearRect(0, 0, W, H);
@@ -50,10 +55,16 @@ export function initContours() {
   canvas.className = 'topo';
   canvas.setAttribute('aria-hidden', 'true');
   document.body.prepend(canvas);
-  const redraw = () => drawContours(canvas);
+  let drawn;
+  const redraw = () => { drawContours(canvas); drawn = size(); };
   redraw();
   let t;
-  addEventListener('resize', () => { clearTimeout(t); t = setTimeout(redraw, 150); });
+  // Redraw only when the map no longer fits: a new width, a window taller than what was drawn,
+  // or a new pixel density. A shorter or slightly taller window just shows more or less of it.
+  addEventListener('resize', () => {
+    clearTimeout(t);
+    t = setTimeout(() => { const [W, H, d] = size(); if (W !== drawn[0] || H > drawn[1] || d !== drawn[2]) redraw(); }, 150);
+  });
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
   return canvas;
 }

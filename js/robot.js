@@ -62,7 +62,20 @@ export function initRobot({ reduce = matchMedia('(prefers-reduced-motion: reduce
   let x = reduce ? innerWidth - 90 : 12, facing = reduce ? -1 : 1, phase = 0, lastT = performance.now(), speed = 0;
   let hop = 0, hopV = 0, antA = 0, antV = 0, mouse = null, nextBlink = 1.5, blinkT = -1, happy = false;
   let trick = null, facing0 = 1, combo = 0, lastClick = 0, order = [], lastLine = -1, pointer = 'mouse', ac;
-  addEventListener('pointermove', e => { mouse = { x: e.clientX, y: e.clientY }; }, { passive: true });
+  let calm = false, lastMove = -1e9;
+  addEventListener('pointermove', e => { mouse = { x: e.clientX, y: e.clientY }; lastMove = performance.now(); calm = false; }, { passive: true });
+
+  // Sizes are measured only when they can change, never per frame: reading layout right after
+  // moving things forces the browser to lay the page out again on every frame.
+  let bw, bh, botTop, bubbleW, maxScroll;
+  const measure = () => {
+    const r = bot.getBoundingClientRect();
+    bw = r.width; bh = r.height; botTop = r.top; bubbleW = bubble.offsetWidth;
+    maxScroll = Math.max(1, document.documentElement.scrollHeight - innerHeight);
+  };
+  measure();
+  addEventListener('resize', measure);
+  new ResizeObserver(measure).observe(document.body);
 
   function showEyes(which) {
     P.eyesOpen.style.display = which === 'open' && !happy ? '' : 'none';
@@ -72,13 +85,15 @@ export function initRobot({ reduce = matchMedia('(prefers-reduced-motion: reduce
   function setHappy(on) { happy = on; if (!trick) showEyes('open'); P.blush.setAttribute('opacity', on ? .8 : 0); }
 
   function frame(now) {
+    requestAnimationFrame(frame);
+    const W = innerWidth, goal = reduce ? W - bw - 14 : 12 + (W - bw - 24) * Math.min(1, scrollY / maxScroll);
+    // Standing still with nobody around: a dozen updates a second is plenty for a head sway and a blink.
+    if (calm && Math.abs(goal - x) < .05 && now - lastT < 80) return;
     const dt = Math.min(.05, (now - lastT) / 1000); lastT = now;
-    const W = innerWidth, bw = bot.offsetWidth;
     let moved = 0;
-    if (reduce) x = W - bw - 14;
+    if (reduce) x = goal;
     else {
-      const max = Math.max(1, document.documentElement.scrollHeight - innerHeight);
-      const step = (12 + (W - bw - 24) * Math.min(1, scrollY / max) - x) * Math.min(1, dt * 4);
+      const step = (goal - x) * Math.min(1, dt * 4);
       x += step; moved = step;
       if (Math.abs(step) > .05) facing = step > 0 ? 1 : -1;
       phase += Math.abs(step) / 26 * Math.PI; // feet locked to distance travelled, so no moonwalking
@@ -97,7 +112,7 @@ export function initRobot({ reduce = matchMedia('(prefers-reduced-motion: reduce
     P.head.setAttribute('transform', `rotate(${speed < .05 && !reduce ? Math.sin(now / 900) * 3 : 0} 56 42)`);
 
     // eyes follow the cursor, and blink every few seconds
-    const r = bot.getBoundingClientRect(), ex = r.left + r.width * .58, ey = r.top + r.height * .24;
+    const ex = x + bw * .58, ey = botTop + bh * .24;
     let gx = 0, gy = 0;
     if (mouse) {
       const dist = Math.hypot(mouse.x - ex, mouse.y - ey) || 1;
@@ -129,10 +144,10 @@ export function initRobot({ reduce = matchMedia('(prefers-reduced-motion: reduce
     P.flip.setAttribute('transform', facing > 0 ? '' : 'translate(100 0) scale(-1 1)');
     bot.style.transform = `translateX(${x}px)`;
     // keep the speech bubble on screen, with its tail still pointing at the robot
-    const bwid = bubble.offsetWidth, left = Math.max(8, Math.min(W - bwid - 8, x + bw / 2 - bwid / 2));
+    const left = Math.max(8, Math.min(W - bubbleW - 8, x + bw / 2 - bubbleW / 2));
     bubble.style.left = `${left - x}px`;
     bubble.style.setProperty('--tail', `${x + bw / 2 - left}px`);
-    requestAnimationFrame(frame);
+    calm = !trick && hop === 0 && speed < .03 && Math.abs(antA) + Math.abs(antV) < .5 && now - lastMove > 400;
   }
   requestAnimationFrame(frame);
 
@@ -187,6 +202,7 @@ export function initRobot({ reduce = matchMedia('(prefers-reduced-motion: reduce
   bot.addEventListener('pointerdown', e => { pointer = e.pointerType; });
   document.addEventListener('pointerdown', e => { if (!bot.contains(e.target)) quiet(); });
   bot.addEventListener('click', () => {
+    calm = false;
     // On a touch screen the first tap is the "hover": show a line. The next tap does a trick.
     if (pointer !== 'mouse' && !bubble.classList.contains('on')) { talk(); return; }
     const now = performance.now();

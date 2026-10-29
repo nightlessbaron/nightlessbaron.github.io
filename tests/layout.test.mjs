@@ -37,14 +37,22 @@ test('dark mode changes the palette and keeps contrast', async () => {
   });
 });
 
-test('first-load weight under 1.5 MB with no video requested', () => withPage({}, async (page, base) => {
+test('first-load weight under 500 KB with no video requested', () => withPage({}, async (page, base) => {
   const sizes = [];
   page.on('requestfinished', async req => { const s = await req.sizes(); sizes.push([req.url(), s.responseBodySize + s.responseHeadersSize]); });
   await page.goto(base + '/', { waitUntil: 'networkidle' });
   const total = sizes.reduce((t, [, s]) => t + s, 0);
-  assert.ok(total < 1.5e6, `first load ${total} bytes`);
+  assert.ok(total < 5e5, `first load ${total} bytes`);
   assert.equal(sizes.filter(([u]) => /\.(mp4|webm)$/.test(u)).length, 0);
 }));
+
+for (const width of [601, 650, 700, 760]) {
+  test(`the name stays on one line at ${width}px`, () => withPage({ width, height: 800 }, async (page, base) => {
+    await page.goto(base + '/');
+    const lines = await page.$eval('#name', el => Math.round(el.getBoundingClientRect().height / parseFloat(getComputedStyle(el).lineHeight)));
+    assert.equal(lines, 1);
+  }));
+}
 
 for (const width of [360, 320]) {
   test(`no horizontal scroll on a ${width}px phone after the tagline decodes`, () => withPage({ width, height: 780, hasTouch: true }, async (page, base) => {

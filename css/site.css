@@ -1,4 +1,12 @@
 /* Layout after Jon Barron's site: one centred column, papers as thumbnail + text rows. */
+
+/* Lato, served from this site (latin subset, OFL: fonts/OFL.txt). `optional` means the browser
+   uses Lato only if it arrives almost at once (the pages preload it); otherwise that visit keeps
+   the fallback font, so the text never reflows mid-read. */
+@font-face { font-family: "Lato"; font-style: normal; font-weight: 400; font-display: optional; src: url(../fonts/lato-400.woff2) format("woff2"); }
+@font-face { font-family: "Lato"; font-style: normal; font-weight: 700; font-display: optional; src: url(../fonts/lato-700.woff2) format("woff2"); }
+@font-face { font-family: "Lato"; font-style: italic; font-weight: 400; font-display: optional; src: url(../fonts/lato-400-italic.woff2) format("woff2"); }
+
 :root {
   --bg: #ffffff;
   --text: #1a1a1a;
@@ -107,6 +115,12 @@ footer { margin-top: 36px; padding-top: 16px; border-top: 1px solid var(--rule);
 footer q { display: block; max-width: 640px; margin: 0 auto 4px; font: italic 14px/1.6 var(--serif); color: var(--muted); }
 footer .who { display: block; margin-bottom: 10px; }
 
+/* Tablet widths: a smaller photo leaves the name room to stay on one line. */
+@media (min-width: 601px) and (max-width: 760px) {
+  .hdr { gap: 24px; }
+  .photo { width: 150px; height: 150px; }
+}
+
 @media (max-width: 600px) {
   .page { padding: 24px 16px; }
   .hdr { flex-direction: column-reverse; gap: 16px; }
@@ -135,7 +149,7 @@ footer .who { display: block; margin-bottom: 10px; }
 #tagline .tok:hover .lp { opacity: 1; }
 
 /* Contour background (js/contours.js): a fixed, static canvas under everything */
-canvas.topo { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: -1; pointer-events: none; }
+canvas.topo { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; pointer-events: none; }
 
 /* Robot (js/robot.js): fixed to the bottom edge; JS sets its x position */
 .bot { position: fixed; bottom: 6px; left: 0; width: 76px; height: 92px; z-index: 40; cursor: pointer;

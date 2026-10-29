@@ -34,6 +34,38 @@ test('contours switch to a light ink in dark mode', () => withPage({ colorScheme
   assert.ok(k.rgb[1] > 140 && k.rgb[2] > 150, `dark-mode ink ${k.rgb}`);
 }));
 
+// A fingerprint of what is drawn, plus whether the canvas is shown unstretched and covers the viewport.
+const drawn = page => page.evaluate(() => {
+  const c = document.querySelector('canvas.topo'), d = c.getContext('2d').getImageData(0, 0, c.width, Math.min(c.height, 600)).data;
+  let h = 0; for (let i = 3; i < d.length; i += 16) h = (h * 31 + d[i]) | 0;
+  const r = c.getBoundingClientRect();
+  return { h, covers: r.height >= innerHeight, unstretched: Math.abs(r.height * devicePixelRatio - c.height) < 2 };
+});
+
+test('on a phone the map stays put when the address bar hides', () =>
+  withPage({ width: 390, height: 664, hasTouch: true, screen: { width: 390, height: 844 } }, async (page, base) => {
+    await page.goto(base + '/');
+    await page.waitForTimeout(300);
+    const before = await drawn(page);
+    await page.setViewportSize({ width: 390, height: 744 }); // the address bar slides away on scroll
+    await page.waitForTimeout(400);
+    const after = await drawn(page);
+    assert.equal(after.h, before.h, 'contours were redrawn in a different place');
+    assert.ok(after.covers && after.unstretched, JSON.stringify(after));
+  }));
+
+test('the map is redrawn to fit when the window gets narrower', () => withPage({}, async (page, base) => {
+  await page.goto(base + '/');
+  await page.waitForTimeout(300);
+  const before = await drawn(page);
+  await page.setViewportSize({ width: 1000, height: 900 });
+  await page.waitForTimeout(400);
+  const after = await drawn(page);
+  assert.notEqual(after.h, before.h);
+  assert.ok(after.covers && after.unstretched, JSON.stringify(after));
+  assert.equal(await page.evaluate(() => document.querySelector('canvas.topo').width), 1000);
+}));
+
 test('the page still reads without JavaScript (no canvas, plain background)', () => withPage({ javaScriptEnabled: false }, async (page, base) => {
   await page.goto(base + '/');
   assert.equal(await page.locator('canvas.topo').count(), 0);

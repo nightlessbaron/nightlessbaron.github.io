@@ -23,11 +23,17 @@ test('old URLs redirect', () => withPage({}, async (page, base) => {
   }
 }));
 
-test('stubs are noindex with a canonical link and a visible fallback', () => withPage({}, async (page, base) => {
+// A canonical link already tells search engines where the page went; adding noindex as well
+// sends them two conflicting signals, so the stubs carry only the canonical.
+test('stubs have a canonical link and a visible fallback, and no noindex', () => withPage({}, async (page, base) => {
   const html = await (await page.request.get(base + '/publications/')).text();
-  assert.match(html, /<meta name="robots" content="noindex">/);
   assert.match(html, /<link rel="canonical" href="https:\/\/nightlessbaron\.github\.io\/#research">/);
   assert.match(html, /<a href="\/#research">/);
+  for (const from of [...PAGES.map(([f]) => f), ...TO_CV]) {
+    const stub = await (await page.request.get(base + from)).text();
+    assert.doesNotMatch(stub, /noindex/, from);
+    assert.match(stub, /<link rel="canonical"/, from);
+  }
 }));
 
 test('unknown paths get a styled 404', () => withPage({}, async (page, base) => {
