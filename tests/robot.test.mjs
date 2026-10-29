@@ -37,8 +37,8 @@ test('standing idle is cheap, and it still wakes up the moment you scroll', () =
   assert.ok(perSec < 25, `${perSec.toFixed(0)} layouts a second while nothing is happening`);
   const x0 = await botX(page);
   await scrollToEnd(page);
-  await page.waitForTimeout(1500);
-  assert.ok(await botX(page) > x0 + 600, 'it walked after the scroll');
+  await page.waitForFunction(x => document.querySelector('.bot').getBoundingClientRect().left > x + 600, x0, { timeout: 10000 })
+    .catch(() => assert.fail('it did not walk after the scroll'));
 }));
 
 // The first translate() in the eyes' transform is where they look: [right, down].

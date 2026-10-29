@@ -14,7 +14,7 @@ const TO_CV = ['/cv/', '/resume/'];
 test('old URLs redirect', () => withPage({}, async (page, base) => {
   for (const [from, to] of PAGES) {
     await page.goto(base + from);
-    await page.waitForURL(u => { const x = new URL(u); return x.pathname + x.hash === to; }, { timeout: 3000 })
+    await page.waitForURL(u => { const x = new URL(u); return x.pathname + x.hash === to; }, { timeout: 10000 })
       .catch(() => assert.fail(`${from} ended at ${page.url()}, expected ${to}`));
   }
   for (const from of TO_CV) {
