@@ -59,8 +59,19 @@ test('fonts are served from the site itself, so loading the page contacts no one
   assert.deepEqual(urls.filter(u => !u.startsWith(base) && !u.startsWith('data:') && u !== UMAMI_SCRIPT), []);
   const fonts = urls.filter(u => /\/fonts\/.+\.woff2$/.test(u));
   assert.ok(fonts.length >= 2, `self-hosted fonts requested: ${fonts}`);
-  const loaded = await page.evaluate(() => [...document.fonts].filter(f => f.family.replace(/"/g, '') === 'Lato' && f.status === 'loaded').length);
-  assert.ok(loaded >= 2, `${loaded} Lato faces loaded`);
+  // "Loaded" is not "used": with font-display: optional a face can load after the page has already
+  // committed to the fallback. Compare each style's rendered width with the same text in the fallback.
+  const styles = await page.evaluate(() => [['regular', '.intro p'], ['bold', '.t'], ['italic', '.m i']].map(([name, sel]) => {
+    const el = document.querySelector(sel), twin = el.cloneNode(true);
+    twin.style.cssText = 'font-family: "Helvetica Neue", Arial, sans-serif !important; position: absolute; visibility: hidden; white-space: nowrap';
+    const probe = el.cloneNode(true);
+    probe.style.cssText = 'position: absolute; visibility: hidden; white-space: nowrap';
+    el.parentElement.append(twin, probe);
+    const w = [probe.getBoundingClientRect().width, twin.getBoundingClientRect().width];
+    twin.remove(); probe.remove();
+    return [name, Math.abs(w[0] - w[1]) > 2];
+  }));
+  assert.deepEqual(styles, [['regular', true], ['bold', true], ['italic', true]], 'every Lato style is rendered, not the fallback');
   assert.deepEqual(page.__errors, []);
 }));
 
@@ -129,4 +140,12 @@ test('the browser tab and home-screen icons are the robot', () => withPage({}, a
   }
   const ico = await page.request.get(base + '/favicon.ico');
   assert.equal(ico.status(), 200, 'browsers that ask for /favicon.ico get one');
+}));
+
+test('every Lato face the page uses is preloaded, so none misses the font-display window', () => withPage({}, async (page, base) => {
+  await page.goto(base + '/');
+  const faces = [...(await (await page.request.get(base + '/css/site.css')).text()).matchAll(/url\(\.\.\/(fonts\/[^)]+\.woff2)\)/g)].map(m => m[1]);
+  assert.equal(faces.length, 3);
+  const preloads = await page.$$eval('link[rel="preload"][as="font"]', ls => ls.map(l => l.getAttribute('href')));
+  assert.deepEqual([...preloads].sort(), [...faces].sort());
 }));

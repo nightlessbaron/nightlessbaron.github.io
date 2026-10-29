@@ -12,6 +12,9 @@ for (const colorScheme of ['light', 'dark']) {
     test(`${page_} has no serious accessibility problems (${colorScheme})`, () => withPage({ colorScheme }, async (page, base) => {
       await page.goto(base + page_, { waitUntil: 'networkidle' });
       await page.waitForTimeout(3500);
+      // The contour canvas sits behind all the text, and axe gives up on contrast checks when an image
+      // is behind the text ("incomplete", not a violation). It is nearly transparent, so judge without it.
+      await page.evaluate(() => document.querySelectorAll('canvas.topo').forEach(c => c.remove()));
       await page.addScriptTag({ content: AXE });
       const found = await page.evaluate(async () => (await axe.run(document, { resultTypes: ['violations'] })).violations
         .filter(v => v.impact === 'serious' || v.impact === 'critical')
