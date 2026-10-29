@@ -22,6 +22,7 @@ const pct = p => `${Math.round(p * 100)}%`;
 export function decodeTagline(el, candidates = CANDIDATES, { stepMs = 150, holdMs = 260, animate = true } = {}) {
   const words = el.textContent.trim().split(/\s+/);
   el.textContent = '';
+  el.classList.add('ready'); // un-hides the tagline (see site.css); the tokens below start out blank
   const toks = words.map((w, i) => {
     const cands = candidates[w] || [[w, .99]];
     const tok = document.createElement('span');

@@ -58,6 +58,12 @@ test('reduced motion never autoplays; play button does', () => withPage({ reduce
   assert.equal((await state(page, RL)).paused, true);
   const btn = page.locator(`${RL} >> .thumb button.play`);
   assert.equal(await btn.count(), 1);
+  assert.equal(await btn.getAttribute('aria-pressed'), 'false');
   await btn.click();
   await page.waitForFunction(() => !document.querySelectorAll('.row.hl')[1].querySelector('video').paused, null, { timeout: 4000 });
+  // A screen reader hears a toggle that says whether the animation is on, not "Play" while it plays.
+  assert.equal(await btn.getAttribute('aria-pressed'), 'true');
+  await btn.click();
+  assert.equal(await btn.getAttribute('aria-pressed'), 'false');
+  assert.equal((await state(page, RL)).paused, true);
 }));

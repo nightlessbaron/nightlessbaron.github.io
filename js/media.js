@@ -30,10 +30,13 @@ export function initMedia(root = document) {
       btn.className = 'play';
       btn.type = 'button';
       btn.setAttribute('aria-label', 'Play animation');
+      btn.setAttribute('aria-pressed', 'false'); // a toggle: screen readers announce on/off
       btn.textContent = '▶';
       btn.addEventListener('click', () => {
         ctl.toggle();
-        btn.textContent = thumb.querySelector('video').paused ? '▶' : '❚❚';
+        const playing = !thumb.querySelector('video').paused;
+        btn.textContent = playing ? '❚❚' : '▶';
+        btn.setAttribute('aria-pressed', String(playing));
       });
       thumb.append(btn);
       continue;

@@ -11,7 +11,7 @@
   --bg: #ffffff;
   --text: #1a1a1a;
   --muted: #555;
-  --faint: #888;
+  --faint: #767676; /* the lightest grey that still reads at 4.5:1 on white */
   --rule: #e6e6e6;
   --link: #1772d0;
   --link-hover: #f09228;
@@ -60,6 +60,10 @@ html { -webkit-text-size-adjust: 100%; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 var(--sans); }
 a { color: var(--link); text-decoration: none; }
 a:hover, a:focus-visible { color: var(--link-hover); }
+/* Links inside a line of grey text (paper links, Miscellanea, footer) get a faint underline,
+   so they don't rely on colour alone to stand out. */
+.m a, .misc dd a, footer a { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px;
+  text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); }
 a:focus-visible { outline: 2px solid var(--link-hover); outline-offset: 2px; }
 
 .page { max-width: 860px; margin: 0 auto; padding: 40px 24px 32px; }
@@ -133,6 +137,10 @@ footer .who { display: block; margin-bottom: 10px; }
 }
 
 /* Tagline decode (js/tagline.js) */
+/* With JS on, the tagline stays hidden (keeping its space) until the decoder takes over, instead of
+   flashing the finished sentence first. If the script never arrives, it shows after a moment. */
+html.js #tagline:not(.ready) { visibility: hidden; animation: tagline-fallback 0s 1.2s forwards; }
+@keyframes tagline-fallback { to { visibility: visible; } }
 /* The hidden overlays still occupy layout; clip sideways so they can't widen a phone page. */
 #tagline { overflow-x: clip; }
 #tagline .tok { position: relative; display: inline-block; border-radius: 3px; transition: background-color .3s; }
