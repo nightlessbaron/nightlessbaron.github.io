@@ -29,3 +29,16 @@ test('every page: local links resolve, no errors, no GPU counts, has a title', (
     assert.deepEqual(page.__errors, [], `${url} errors`);
   }
 }));
+
+test('the repo: static files for Pages, and media within budget', () => {
+  const has = p => fs.existsSync(path.join(ROOT, p)), size = p => fs.statSync(path.join(ROOT, p)).size;
+  assert.ok(has('.nojekyll') && !has('_config.yml'), 'served as-is, no Jekyll');
+  assert.ok(has('files/VARAD_CV_ML.pdf'));
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  for (const [, a, b] of html.matchAll(/<img[^>]*\ssrc="([^"]+)"|\sposter="([^"]+)"/g)) {
+    const src = a || b;
+    assert.match(src, /\.webp$/, src);
+    assert.ok(size(src) < 1e5, `${src} under 100 KB`);
+  }
+  for (const m of ['isocompute', 'uno', 'rl360']) assert.ok(size(`media/${m}.mp4`) < 1.5e6, `media/${m}.mp4 under 1.5 MB`);
+});
