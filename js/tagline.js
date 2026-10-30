@@ -50,6 +50,15 @@ export function decodeTagline(el, candidates = CANDIDATES, { stepMs = 150, holdM
     el.append(tok, i < words.length - 1 ? ' ' : '');
     return tok;
   });
+  // The sentence wraps on narrower columns. Mark each word's line so its overlays open away from the
+  // rest of the sentence: candidates above the first line and below the others, log-probs below the
+  // last line and above the others (site.css). Re-marked whenever the wrapping can change.
+  const place = () => {
+    const tops = toks.map(t => t.offsetTop), first = Math.min(...tops), last = Math.max(...tops);
+    toks.forEach((t, i) => { t.classList.toggle('l-first', tops[i] - first < 4); t.classList.toggle('l-last', last - tops[i] < 4); });
+  };
+  place();
+  new ResizeObserver(place).observe(el);
   if (!animate) return Promise.resolve();
   return new Promise(done => toks.forEach((tok, i) => setTimeout(() => {
     const stack = tok.querySelector('.cands');

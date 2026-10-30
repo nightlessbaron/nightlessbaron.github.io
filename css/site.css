@@ -188,7 +188,12 @@ html.js #tagline:not(.ready) { visibility: hidden; animation: tagline-fallback 0
 #tagline .cands { bottom: calc(100% + 2px); display: flex; flex-direction: column; color: var(--faint); background: var(--bg);
   padding: 3px 7px; border-radius: 5px; box-shadow: 0 0 0 1px var(--rule), 0 4px 12px rgba(0, 0, 0, .08); }
 #tagline .cands b { color: var(--orange); font-weight: 600; }
-#tagline .cands.on { opacity: 1; }
+/* Pop-ups fade in but vanish at once, so the next word's never overlaps a fading one. */
+#tagline .cands { transition: none; }
+#tagline .cands.on { opacity: 1; transition: opacity .15s; }
+/* When the sentence wraps (js/tagline.js marks the lines), overlays open away from its other line. */
+#tagline .tok:not(.l-first) .cands { bottom: auto; top: calc(100% + 2px); flex-direction: column-reverse; }
+#tagline .tok:not(.l-last) .lp { top: auto; bottom: 100%; }
 #tagline .lp { top: 100%; color: var(--teal); }
 #tagline .cands > *::before, #tagline .lp::before { content: attr(data-t); }
 #tagline .tok:hover .lp { opacity: 1; }

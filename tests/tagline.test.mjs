@@ -67,3 +67,29 @@ test('if the tagline script never arrives, the sentence still shows', () => with
   assert.equal(await page.$eval('#tagline', el => el.textContent.trim()), TAGLINE);
   page.__errors = [];
 }));
+
+test('when the tagline wraps, no pop-up covers its other line, and only one is ever visible', async () => {
+  for (const o of [{ width: 1280, height: 800 }, { width: 390, height: 800, hasTouch: true }]) {
+    await withPage(o, async (page, base) => {
+      await page.goto(base + '/', { waitUntil: 'commit' });
+      await page.waitForSelector('#tagline.ready', { state: 'attached', timeout: 10000 });
+      const lines = await page.$$eval('#tagline .tok', ts => new Set(ts.map(t => Math.round(t.getBoundingClientRect().top))).size);
+      assert.ok(lines >= 2, `${o.width}px: the tagline wraps (${lines} lines), so this test means something`);
+      let seen = 0;
+      for (let i = 0; i < 70; i++) {
+        const f = await page.evaluate(() => {
+          const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+          const shown = [...document.querySelectorAll('#tagline .cands')].filter(c => +getComputedStyle(c).opacity > .02);
+          const covers = shown.flatMap(c => { const r = c.getBoundingClientRect();
+            return [...document.querySelectorAll('#tagline .tok')].filter(t => t !== c.parentElement && hit(r, t.getBoundingClientRect())).map(t => t.firstChild.textContent); });
+          return { n: shown.length, covers };
+        });
+        assert.ok(f.n <= 1, `${o.width}px: ${f.n} pop-ups visible at once`);
+        assert.deepEqual(f.covers, [], `${o.width}px: a pop-up covers ${f.covers}`);
+        seen += f.n;
+        await page.waitForTimeout(25);
+      }
+      assert.ok(seen > 5, 'pop-ups were seen');
+    });
+  }
+});
