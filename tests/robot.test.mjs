@@ -101,44 +101,113 @@ test('five clicks in a row tire it out, and every trick shows up before any repe
   assert.match(await page.locator('.bot-tag').last().textContent(), /tired/);
 }));
 
-test('on a phone, a tap shows a one-liner and nothing scrolls sideways', () => withPage({ hasTouch: true, width: 320, height: 700 }, async (page, base) => {
+// The robot's box, and how much of it is above the bottom of the window.
+const box = page => page.evaluate(() => { const r = document.querySelector('.bot').getBoundingClientRect();
+  return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, shown: (innerHeight - r.top) / r.height }; });
+// Resolves once the robot has stopped moving (same box for 400 ms).
+const settled = async page => {
+  const at = () => page.$eval('.bot', b => { const r = b.getBoundingClientRect(); return `${r.left.toFixed(1)},${r.top.toFixed(1)}`; });
+  for (let t0 = Date.now(), a = await at(); Date.now() - t0 < 10000;) {
+    await page.waitForTimeout(400);
+    const b = await at();
+    if (b === a) return;
+    a = b;
+  }
+  assert.fail('the robot never stood still');
+};
+// The head is the top of the robot: that is what a finger lands on while it peeks.
+const tapHead = page => page.locator('.bot .hit rect').first().tap({ force: true });
+
+test('on a wide screen it never stands over the text: it walks in the margins and crosses once, halfway down', () => withPage({}, async (page, base) => {
   await page.goto(base + '/');
-  await page.waitForTimeout(400);
-  await page.locator('.bot').tap();
+  const col = await page.$eval('main', m => { const r = m.getBoundingClientRect(); return [r.left, r.right]; });
+  const xs = [];
+  for (const f of [0, .2, .45, .55, .8, 1]) {
+    await page.evaluate(f => scrollTo(0, f * (document.documentElement.scrollHeight - innerHeight)), f);
+    await settled(page);
+    const b = await box(page);
+    assert.ok(b.right <= col[0] || b.left >= col[1], `at ${f * 100}% it stands over the text (${b.left}–${b.right}, text ${col})`);
+    assert.ok(b.bottom <= 900, 'fully on screen');
+    xs.push(b.left);
+  }
+  assert.ok(xs.every((x, i) => i === 0 || x > xs[i - 1]), `walks right as you read: ${xs.map(Math.round)}`);
+  assert.ok(xs[2] < col[0] && xs[3] > col[1], 'left margin for the first half, right margin for the second');
+}));
+
+test('where there are no margins (a phone, a narrow window) only its head peeks up from the corner', async () => {
+  for (const o of [{ width: 390, height: 800, hasTouch: true }, { width: 900, height: 800 }]) {
+    await withPage(o, async (page, base) => {
+      await page.goto(base + '/');
+      await page.evaluate(() => scrollTo(0, 600));
+      await settled(page);
+      const b = await box(page);
+      assert.ok(b.right > o.width - 30 && b.right <= o.width, `${o.width}px: in the right corner (${b.right})`);
+      assert.ok(b.shown > .2 && b.shown < .5, `${o.width}px: ${Math.round(b.shown * 100)}% of it shows`);
+    });
+  }
+});
+
+test('a peeking robot climbs out to talk, and ducks back down after', () => withPage({ width: 900, height: 800 }, async (page, base) => {
+  await page.goto(base + '/');
+  await settled(page);
+  const b = await box(page);
+  await page.mouse.move((b.left + b.right) / 2, b.top + 10);
   await page.waitForFunction(() => getComputedStyle(document.querySelector('.bot .bubble')).opacity === '1');
-  const b = await page.evaluate(() => { const r = document.querySelector('.bot .bubble').getBoundingClientRect(); return [r.left, r.right]; });
-  assert.ok(b[0] >= 0 && b[1] <= 320, `bubble spans ${b}`);
+  await settled(page);
+  assert.ok((await box(page)).shown > .95, 'all of it is out');
+  await page.mouse.move(300, 300);
+  await settled(page);
+  assert.ok((await box(page)).shown < .5, 'back to peeking');
+}));
+
+test('on a phone a tap on its head gets a one-liner, a second tap a trick, and nothing scrolls sideways', () => withPage({ hasTouch: true, width: 320, height: 700 }, async (page, base) => {
+  await page.goto(base + '/');
+  await settled(page);
+  await tapHead(page);
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('.bot .bubble')).opacity === '1');
+  const bb = await page.evaluate(() => { const r = document.querySelector('.bot .bubble').getBoundingClientRect(); return [r.left, r.right]; });
+  assert.ok(bb[0] >= 0 && bb[1] <= 320, `bubble spans ${bb}`);
+  await settled(page);
+  await tapHead(page);
+  assert.match(await page.evaluate(() => document.querySelector('.bot').dataset.last), /^(backflip|faceplant|dance|spin|hearts)$/);
   await scrollToEnd(page);
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(1200);
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth) <= 320);
 }));
 
-test('on a phone it waits in the corner instead of walking, and still does tricks', () => withPage({ hasTouch: true, width: 390, height: 800 }, async (page, base) => {
-  await page.goto(base + '/');
-  await page.waitForTimeout(400);
-  const box = () => page.evaluate(() => { const r = document.querySelector('.bot').getBoundingClientRect(); return { left: r.left, right: r.right, top: r.top }; });
-  const b0 = await box();
-  assert.ok(b0.right > 360 && b0.right <= 390, `starts in the bottom-right corner (right edge ${b0.right})`);
-  await scrollToEnd(page);
-  await page.waitForTimeout(1200);
-  assert.equal(Math.round((await box()).left), Math.round(b0.left), 'it does not walk');
-  // the end of the page scrolls clear of it, so nothing stays hidden underneath
-  const footerBottom = await page.$eval('footer', f => f.lastElementChild.getBoundingClientRect().bottom);
-  assert.ok(footerBottom <= (await box()).top, `footer ends at ${footerBottom}, robot starts at ${(await box()).top}`);
-  await page.locator('.bot').tap(); // first tap: a one-liner
-  await page.locator('.bot').tap(); // second tap: a trick
-  assert.match(await page.evaluate(() => document.querySelector('.bot').dataset.last), /^(backflip|faceplant|dance|spin|hearts)$/);
-}));
+test('at the end of the page it climbs out beside the footer and calls the episode done, once', async () => {
+  for (const o of [{ width: 390, height: 800, hasTouch: true }, { width: 900, height: 800 }, { width: 1280, height: 900 }]) {
+    await withPage(o, async (page, base) => {
+      await page.goto(base + '/');
+      await settled(page);
+      await scrollToEnd(page);
+      await page.waitForSelector('.bot-tag', { timeout: 10000 });
+      assert.match(await page.textContent('.bot-tag'), /episode/i);
+      await settled(page);
+      const b = await box(page);
+      assert.ok(b.shown > .95, `${o.width}px: all of it is out`);
+      const f = await page.$eval('footer', f => { const r = f.lastElementChild.getBoundingClientRect(); return { left: r.left, right: r.right, bottom: r.bottom }; });
+      const clear = f.bottom <= b.top + 1 || f.right <= b.left || f.left >= b.right;
+      assert.ok(clear, `${o.width}px: the footer's last line (${JSON.stringify(f)}) is under the robot (${JSON.stringify(b)})`);
+      await page.waitForFunction(() => !document.querySelector('.bot-tag'), null, { timeout: 5000 });
+      await page.evaluate(() => scrollTo(0, 0)); await settled(page);
+      await scrollToEnd(page); await page.waitForTimeout(1500);
+      assert.equal(await page.locator('.bot-tag').count(), 0, 'only the first time');
+    });
+  }
+});
 
-test('with reduced motion it stays in the corner and a click is just a hop', () => withPage({ reducedMotion: true }, async (page, base) => {
+test('with reduced motion it peeks from the corner, never walks, and a click is just a hop', () => withPage({ reducedMotion: true }, async (page, base) => {
   await page.goto(base + '/');
   await page.waitForTimeout(400);
-  const x0 = await botX(page);
-  assert.ok(x0 > 1100, `starts in the corner at ${x0}`);
-  await scrollToEnd(page);
-  await page.waitForTimeout(800);
-  assert.equal(Math.round(await botX(page)), Math.round(x0));
-  await page.click('.bot');
+  const b0 = await box(page);
+  assert.ok(b0.left > 1100, `in the corner at ${b0.left}`);
+  assert.ok(b0.shown < .5, 'peeking');
+  await page.evaluate(() => scrollTo(0, 800));
+  await page.waitForTimeout(600);
+  assert.equal(Math.round((await box(page)).left), Math.round(b0.left));
+  await page.mouse.move((b0.left + b0.right) / 2, b0.top + 10);
+  await page.mouse.down(); await page.mouse.up();
   assert.equal(await page.evaluate(() => document.querySelector('.bot').dataset.last), 'hop');
 }));
 

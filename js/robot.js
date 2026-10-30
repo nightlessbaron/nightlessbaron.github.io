@@ -1,7 +1,10 @@
 // A small robot that walks along the bottom of the screen as you scroll (its position is your
 // reading progress). Hover it for a one-liner; click it for a trick. Purely decorative: hidden
-// from screen readers, never focusable, silent until clicked. On phones it waits in the corner,
-// where it can't wander over the text; with reduced motion it does that too and a click is just a hop.
+// from screen readers, never focusable, silent until clicked.
+// It never stands over the text. On wide screens it walks in the empty margins: the left one for the
+// first half of the page, the right one for the second, crossing once in between. Where there are no
+// margins (phones, narrow windows, and always with reduced motion) only its head peeks up from the
+// bottom-right corner; it climbs out to talk, to do a trick, and at the end of the page.
 const LINES = [
   ['FUN FACT', 'I fell over about 10,000 times in simulation before you met me. Please don’t bring it up.'],
   ['MY REWARD FUNCTION', '+1 every time you scroll. You are, technically, my policy.'],
@@ -60,8 +63,11 @@ export function initRobot({ reduce = matchMedia('(prefers-reduced-motion: reduce
   const bubble = bot.querySelector('.bubble');
   const P = Object.fromEntries([...bot.querySelectorAll('[data-p]')].map(el => [el.dataset.p, el]));
 
-  const phone = matchMedia('(max-width: 600px)'), parked = () => reduce || phone.matches;
-  let x = parked() ? innerWidth - bot.offsetWidth - 14 : 12, facing = parked() ? -1 : 1, phase = 0, lastT = performance.now(), speed = 0;
+  // Wide enough for a margin the robot fits in beside the 812px text column (site.css pads the page
+  // end for the peeking robot below this same width).
+  const wideMQ = matchMedia('(min-width: 1012px)'), wide = () => !reduce && wideMQ.matches;
+  let x, facing = -1, phase = 0, lastT = performance.now(), speed = 0;
+  let lane = 0, ty = 0, sink = 1, held = false, done = false;
   let hop = 0, hopV = 0, antA = 0, antV = 0, mouse = null, nextBlink = 1.5, blinkT = -1, happy = false;
   let trick = null, facing0 = 1, combo = 0, lastClick = 0, order = [], lastLine = -1, pointer = 'mouse', ac;
   let calm = false, lastMove = -1e9;
@@ -69,13 +75,25 @@ export function initRobot({ reduce = matchMedia('(prefers-reduced-motion: reduce
 
   // Sizes are measured only when they can change, never per frame: reading layout right after
   // moving things forces the browser to lay the page out again on every frame.
-  let bw, bh, botTop, bubbleW, maxScroll;
+  let W, bw, bh, botTop, bubbleW, maxScroll, colL, colR;
+  const main = document.querySelector('main') || document.body;
   const measure = () => {
-    const r = bot.getBoundingClientRect();
-    bw = r.width; bh = r.height; botTop = r.top; bubbleW = bubble.offsetWidth;
+    const r = bot.getBoundingClientRect(), c = main.getBoundingClientRect();
+    W = document.documentElement.clientWidth; // without the scrollbar
+    bw = r.width; bh = r.height; botTop = r.top - ty; bubbleW = bubble.offsetWidth;
+    colL = c.left; colR = c.right;
     maxScroll = Math.max(1, document.documentElement.scrollHeight - innerHeight);
   };
   measure();
+  // Where it wants to be: in a margin, at your reading progress; or in the corner.
+  const goalX = () => {
+    if (!wide()) return W - bw - 14;
+    const p = Math.min(1, scrollY / maxScroll);
+    if (lane === 0 && p > .52) lane = 1; else if (lane === 1 && p < .48) lane = 0; // no dithering at the halfway line
+    const l0 = 12, l1 = Math.max(l0, colL - bw - 12), r0 = colR + 12, r1 = Math.max(r0, W - bw - 12);
+    return lane === 0 ? l0 + (l1 - l0) * Math.min(1, p / .5) : r0 + (r1 - r0) * Math.max(0, (p - .5) / .5);
+  };
+  x = goalX();
   addEventListener('resize', measure);
   new ResizeObserver(measure).observe(document.body);
 
@@ -88,18 +106,29 @@ export function initRobot({ reduce = matchMedia('(prefers-reduced-motion: reduce
 
   function frame(now) {
     requestAnimationFrame(frame);
-    const W = innerWidth, goal = parked() ? W - bw - 14 : 12 + (W - bw - 24) * Math.min(1, scrollY / maxScroll);
+    const goal = goalX(), atEnd = scrollY >= maxScroll - 2;
+    // A peeking robot keeps its head up while the pointer is anywhere over where its body would be,
+    // so rising under a still cursor can't make it duck and pop up again in a loop.
+    if (held && !(mouse && mouse.x > x - 10 && mouse.x < x + bw + 10 && mouse.y > botTop - 10)) held = false;
+    const up = wide() || atEnd || held || trick || hop > 0 || bubble.classList.contains('on') ? 0 : 1;
     // Standing still with nobody around: a dozen updates a second is plenty for a head sway and a blink.
-    if (calm && Math.abs(goal - x) < .05 && now - lastT < 80) return;
+    if (calm && Math.abs(goal - x) < .05 && sink === up && now - lastT < 80) return;
     const dt = Math.min(.05, (now - lastT) / 1000); lastT = now;
     let moved = 0;
-    if (reduce) x = goal;
+    if (reduce) { x = goal; sink = up; }
     else {
-      const step = (goal - x) * Math.min(1, dt * 4);
+      let step = (goal - x) * Math.min(1, dt * 4);
+      step = Math.sign(step) * Math.min(Math.abs(step), 900 * dt); // a brisk trot across the text, not a teleport
       x += step; moved = step;
       if (Math.abs(step) > .05) facing = step > 0 ? 1 : -1;
       phase += Math.abs(step) / 26 * Math.PI; // feet locked to distance travelled, so no moonwalking
+      sink += (up - sink) * Math.min(1, dt * 9); if (Math.abs(up - sink) < .002) sink = up;
     }
+    ty = sink * (6 + bh * .6); // peeking: the bottom 60% (and the 6px gap) below the window's edge
+    // standing still, it turns to face the page
+    if (!trick && speed < .03 && Math.abs(goal - x) < 1) facing = wide() && lane === 0 ? 1 : -1;
+    // The end of the page, the first time: it has been an episode.
+    if (atEnd && !done && sink < .05 && Math.abs(goal - x) < 2 && !trick) { done = true; hopV = 160; tag('episode complete · R = 1.0'); }
     speed += (Math.min(1, Math.abs(moved) / 2) - speed) * Math.min(1, dt * 6);
     if (speed < .03) { const k = Math.round(phase / Math.PI) * Math.PI; phase += (k - phase) * Math.min(1, dt * 6); } // settle feet
 
@@ -114,7 +143,7 @@ export function initRobot({ reduce = matchMedia('(prefers-reduced-motion: reduce
     P.head.setAttribute('transform', `rotate(${speed < .05 && !reduce ? Math.sin(now / 900) * 3 : 0} 56 42)`);
 
     // eyes follow the cursor, and blink every few seconds
-    const ex = x + bw * .58, ey = botTop + bh * .24;
+    const ex = x + bw * .58, ey = botTop + ty + bh * .24;
     let gx = 0, gy = 0;
     if (mouse) {
       const dist = Math.hypot(mouse.x - ex, mouse.y - ey) || 1;
@@ -144,12 +173,12 @@ export function initRobot({ reduce = matchMedia('(prefers-reduced-motion: reduce
     }
     P.trick.setAttribute('transform', `translate(${dx} 0) rotate(${rot} 50 ${pivot})`);
     P.flip.setAttribute('transform', facing > 0 ? '' : 'translate(100 0) scale(-1 1)');
-    bot.style.transform = `translateX(${x}px)`;
+    bot.style.transform = `translate(${x}px, ${ty}px)`;
     // keep the speech bubble on screen, with its tail still pointing at the robot
     const left = Math.max(8, Math.min(W - bubbleW - 8, x + bw / 2 - bubbleW / 2));
     bubble.style.left = `${left - x}px`;
     bubble.style.setProperty('--tail', `${x + bw / 2 - left}px`);
-    calm = !trick && hop === 0 && speed < .03 && Math.abs(antA) + Math.abs(antV) < .5 && now - lastMove > 400;
+    calm = !trick && hop === 0 && speed < .03 && sink === up && Math.abs(antA) + Math.abs(antV) < .5 && now - lastMove > 400;
   }
   requestAnimationFrame(frame);
 
@@ -202,7 +231,7 @@ export function initRobot({ reduce = matchMedia('(prefers-reduced-motion: reduce
   // Only the robot's outline takes the pointer (.hit), so the pointer can slip off it between parts;
   // a short grace period keeps that from closing the bubble and drawing a new line.
   let leaveT;
-  bot.addEventListener('pointerenter', e => { if (e.pointerType !== 'mouse') return; clearTimeout(leaveT); if (!bubble.classList.contains('on')) talk(); });
+  bot.addEventListener('pointerenter', e => { if (e.pointerType !== 'mouse') return; held = true; clearTimeout(leaveT); if (!bubble.classList.contains('on')) talk(); });
   bot.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') leaveT = setTimeout(quiet, 150); });
   bot.addEventListener('pointerdown', e => { pointer = e.pointerType; });
   document.addEventListener('pointerdown', e => { if (!bot.contains(e.target)) quiet(); });

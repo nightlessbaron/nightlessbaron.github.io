@@ -138,6 +138,10 @@ footer .who { display: block; margin-bottom: 10px; }
   .photo { width: 150px; height: 150px; }
 }
 
+/* No side margin for the robot below this width (js/robot.js): it peeks from the corner and climbs
+   out at the end of the page, so the page ends with room for it beside the footer. */
+@media (max-width: 1011.98px) { .page { padding-bottom: 112px; } }
+
 @media (max-width: 600px) {
   .page { padding: 24px 16px 96px; } /* room at the end so the footer clears the robot's corner */
   .hdr { flex-direction: column-reverse; gap: 16px; }
