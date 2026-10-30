@@ -73,8 +73,8 @@
         <div class="dev"><span lang="mr">वरद पिंपळखुटे</span> · <i>VUH-rud</i></div>
       </div>
       <p id="tagline">I work on the science and systems of reinforcement learning for LLM agents.</p>
-      <p>I'm a Research Scientist at the <a href="https://ifm.ai">Institute of Foundation Models</a> (MBZUAI) in Sunnyvale, where I lead post-training RL research for reasoning, software-engineering, terminal, and deep-research agents.</p>
-      <p>I led <a href="https://github.com/ifm-ai/RL360">RL360</a>, IFM's agentic RL infrastructure, which trained <a href="https://ifm.ai/blog/k2/">K2 Horizon</a>'s domain experts, and I led coding-agent task development and post-training for K2 Horizon. I built and scaled our asynchronous RL infrastructure, improving throughput 4× and stabilizing post-training across 400B MoE and 70B dense models on 1000s of GPUs. I've been a core post-training contributor on every K2 release and co-led the K2-Think-V2 release. I also study how RL compute should be spent (<a href="https://compute-optimal-rl-llm-scaling.github.io/">IsoCompute</a>).</p>
+      <p>I'm a Research Scientist at the <a href="https://ifm.ai">Institute of Foundation Models</a> (MBZUAI) in Sunnyvale, where I lead a small group within the post-training team on RL for reasoning, software-engineering, terminal, and deep-research agents.</p>
+      <p>I led <a href="https://github.com/ifm-ai/RL360">RL360</a>, IFM's agentic RL infrastructure, which trained <a href="https://ifm.ai/blog/k2/">K2 Horizon</a>'s domain experts, and I led coding-agent task development and post-training for K2 Horizon. I built and scaled our asynchronous RL infrastructure, reaching 4× the throughput of a synchronous RL baseline, and stabilized post-training across 375B MoE and 70B dense models on 1000s of GPUs. I've been a core post-training contributor on every K2 release and co-led the K2-Think-V2 release. I also study how RL compute should be spent (<a href="https://compute-optimal-rl-llm-scaling.github.io/">IsoCompute</a>).</p>
       <p>Before IFM, I was at <a href="https://www.articul8.ai/">Articul8</a> (where I trained an 8B Verilog code model end to end), <a href="https://allenai.org/">AI2</a>, <a href="https://www.amazon.science/">Amazon</a>, Cedars-Sinai (RADS Scholar), and <a href="https://www.tcs.com/what-we-do/research">TCS Research</a>. I did my MS in Computer Science at <a href="https://www.cics.umass.edu/">UMass Amherst</a> and my BTech at <a href="https://iiitn.ac.in/">IIIT Nagpur</a>.</p>
       <p class="reach">If you're working on agentic RL, RL environments, or the science of scaling RL, I'd love to hear from you.</p>
       <p class="links">
@@ -141,7 +141,7 @@
         <h3 class="t"><a href="https://compute-optimal-rl-llm-scaling.github.io/">IsoCompute Playbook: Optimally Scaling Sampling Compute for LLM RL</a></h3>
         <div class="m">Zhoujun Cheng, Yutao Xie, Yuxiao Qu, Amrith Setlur, Shibo Hao, <b>Varad Pimpalkhute</b>, Tongtong Liang, Feng Yao, Zhengzhong Liu, Eric Xing, Virginia Smith, Ruslan Salakhutdinov, Zhiting Hu, Taylor Killian, Aviral Kumar</div>
         <div class="m"><i>arXiv</i>, 2026 &nbsp;·&nbsp; <a href="https://compute-optimal-rl-llm-scaling.github.io/">playbook</a> / <a href="https://arxiv.org/abs/2603.12151">arXiv</a> / <a href="https://x.com/ChengZhoujun/status/2013686575499223474">thread</a></div>
-        <p class="s">The compute-optimal number of rollouts per problem grows predictably with budget, then saturates. Extra rollouts sharpen the policy on easy problems and expand coverage on hard ones.</p>
+        <p class="s">The compute-optimal number of rollouts per problem grows predictably with budget, then saturates. Extra rollouts sharpen the policy on easy problems and expand coverage on hard ones. I helped frame the problem and design the experiments, and stress-tested the findings at scale on larger models.</p>
         <details class="isofig">
           <summary>Try it: how many rollouts per problem?</summary>
           <figure>
@@ -168,7 +168,7 @@
       </div>
       <div class="body">
         <h3 class="t"><a href="https://github.com/ifm-ai/RL360">RL360: Agentic RL Infrastructure for K2 Horizon</a><span class="pill lead">LEAD</span></h3>
-        <div class="m">Institute of Foundation Models, 2026 &nbsp;·&nbsp; <a href="https://github.com/ifm-ai/RL360">code</a> / <a href="https://wandb.ai/mbzuai-llm/rl360-public">W&amp;B run</a> / <a href="https://x.com/IFM_AI/status/2113323642041840029">thread</a></div>
+        <div class="m">Institute of Foundation Models, 2026 &nbsp;·&nbsp; <a href="https://github.com/ifm-ai/RL360">code</a> / <a href="https://wandb.ai/mbzuai-llm/rl360-public">W&amp;B (demo run)</a> / <a href="https://x.com/IFM_AI/status/2113323642041840029">thread</a></div>
         <p class="s">Open-source agentic RL at scale: 8,192 concurrent sandboxes and about 1.3M rollouts in 7 days. Rollouts, sandboxes, inference, and training scale independently, and infra failures are masked out of the loss instead of being scored as wrong answers.</p>
       </div>
     </div>
@@ -178,7 +178,7 @@
       <div class="body">
         <h3 class="t"><a href="https://ifm.ai/blog/k2/">K2 Horizon: Frontier Performance, Radically Open</a><span class="pill core">CODING-AGENT LEAD</span></h3>
         <div class="m">Institute of Foundation Models, 2026 &nbsp;·&nbsp; <a href="https://ifm.ai/blog/k2/">blog</a> / <a href="https://huggingface.co/IFM">models</a></div>
-        <p class="s">Six fully open models, up to 375B-A23B, released with weights, data, code, and logs. I led coding-agent task development and post-training (SWE and terminal environments, rollout and evaluation pipelines), and RL360 trained its domain experts.</p>
+        <p class="s">Six fully open models, up to 375B-A23B, released with weights, data, code, and logs; the 375B scores 42.6 on SWE-Bench Pro (strict, no internet). I led coding-agent task development and post-training (SWE and terminal environments, rollout and evaluation pipelines), and RL360 trained its domain experts.</p>
       </div>
     </div>
 

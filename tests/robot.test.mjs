@@ -134,23 +134,26 @@ test('on a wide screen it never stands over the text: it walks in the margins an
   assert.ok(xs[2] < col[0] && xs[3] > col[1], 'left margin for the first half, right margin for the second');
 }));
 
-test('where there are no margins (a phone, a narrow window) only its head peeks up from the corner', async () => {
+test('where the corner is over the text (a phone, a narrow window) it stays out of sight while you read', async () => {
   for (const o of [{ width: 390, height: 800, hasTouch: true }, { width: 900, height: 800 }]) {
     await withPage(o, async (page, base) => {
       await page.goto(base + '/');
-      await page.evaluate(() => scrollTo(0, 600));
-      await settled(page);
-      const b = await box(page);
-      assert.ok(b.right > o.width - 30 && b.right <= o.width, `${o.width}px: in the right corner (${b.right})`);
-      assert.ok(b.shown > .2 && b.shown < .5, `${o.width}px: ${Math.round(b.shown * 100)}% of it shows`);
+      for (const y of [0, 600]) {
+        await page.evaluate(y => scrollTo(0, y), y);
+        await settled(page);
+        const b = await box(page);
+        assert.ok(b.right > o.width - 30 && b.right <= o.width, `${o.width}px: in the right corner (${b.right})`);
+        assert.ok(b.shown <= 0, `${o.width}px, scrolled ${y}px: ${Math.round(b.shown * 100)}% of it shows`);
+      }
     });
   }
 });
 
-test('a peeking robot climbs out to talk, and ducks back down after', () => withPage({ width: 900, height: 800 }, async (page, base) => {
+test('where the corner is clear of the text its head peeks up, climbs out to talk, and ducks back down after', () => withPage({ reducedMotion: true }, async (page, base) => {
   await page.goto(base + '/');
   await settled(page);
   const b = await box(page);
+  assert.ok(b.shown > .2 && b.shown < .5, `${Math.round(b.shown * 100)}% of it shows`);
   await page.mouse.move((b.left + b.right) / 2, b.top + 10);
   await page.waitForFunction(() => getComputedStyle(document.querySelector('.bot .bubble')).opacity === '1');
   await settled(page);
@@ -160,8 +163,10 @@ test('a peeking robot climbs out to talk, and ducks back down after', () => with
   assert.ok((await box(page)).shown < .5, 'back to peeking');
 }));
 
-test('on a phone a tap on its head gets a one-liner, a second tap a trick, and nothing scrolls sideways', () => withPage({ hasTouch: true, width: 320, height: 700 }, async (page, base) => {
+test('on a phone, at the end of the page, a tap gets a one-liner, a second tap a trick, and nothing scrolls sideways', () => withPage({ hasTouch: true, width: 320, height: 700 }, async (page, base) => {
   await page.goto(base + '/');
+  await scrollToEnd(page);
+  await page.waitForSelector('.bot-tag', { timeout: 10000 }); // it has climbed out
   await settled(page);
   await tapHead(page);
   await page.waitForFunction(() => getComputedStyle(document.querySelector('.bot .bubble')).opacity === '1');

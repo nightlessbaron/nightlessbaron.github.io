@@ -3,8 +3,9 @@
 // from screen readers, never focusable, silent until clicked.
 // It never stands over the text. On wide screens it walks in the empty margins: the left one for the
 // first half of the page, the right one for the second, crossing once in between. Where there are no
-// margins (phones, narrow windows, and always with reduced motion) only its head peeks up from the
-// bottom-right corner; it climbs out to talk, to do a trick, and at the end of the page.
+// margins (phones, narrow windows), and always with reduced motion, it waits in the bottom-right corner:
+// its head peeks up if that corner is clear of the text, and otherwise it stays below the window's edge.
+// It climbs out to talk, to do a trick, and at the end of the page.
 const LINES = [
   ['FUN FACT', 'I fell over about 10,000 times in simulation before you met me. Please don’t bring it up.'],
   ['MY REWARD FUNCTION', '+1 every time you scroll. You are, technically, my policy.'],
@@ -75,13 +76,14 @@ export function initRobot({ reduce = matchMedia('(prefers-reduced-motion: reduce
 
   // Sizes are measured only when they can change, never per frame: reading layout right after
   // moving things forces the browser to lay the page out again on every frame.
-  let W, bw, bh, botTop, bubbleW, maxScroll, colL, colR;
+  let W, bw, bh, botTop, bubbleW, maxScroll, colL, colR, overText;
   const main = document.querySelector('main') || document.body;
   const measure = () => {
     const r = bot.getBoundingClientRect(), c = main.getBoundingClientRect();
     W = document.documentElement.clientWidth; // without the scrollbar
     bw = r.width; bh = r.height; botTop = r.top - ty; bubbleW = bubble.offsetWidth;
     colL = c.left; colR = c.right;
+    overText = W - bw - 14 < colR; // the corner it waits in is over the text column
     maxScroll = Math.max(1, document.documentElement.scrollHeight - innerHeight);
   };
   measure();
@@ -124,7 +126,7 @@ export function initRobot({ reduce = matchMedia('(prefers-reduced-motion: reduce
       phase += Math.abs(step) / 26 * Math.PI; // feet locked to distance travelled, so no moonwalking
       sink += (up - sink) * Math.min(1, dt * 9); if (Math.abs(up - sink) < .002) sink = up;
     }
-    ty = sink * (6 + bh * .6); // peeking: the bottom 60% (and the 6px gap) below the window's edge
+    ty = sink * (overText ? bh + 12 : 6 + bh * .6); // waiting: all of it, or the bottom 60%, below the window's edge
     // standing still, it turns to face the page
     if (!trick && speed < .03 && Math.abs(goal - x) < 1) facing = wide() && lane === 0 ? 1 : -1;
     // The end of the page, the first time: it has been an episode.
