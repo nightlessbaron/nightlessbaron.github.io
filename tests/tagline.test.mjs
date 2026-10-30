@@ -69,7 +69,8 @@ test('if the tagline script never arrives, the sentence still shows', () => with
 }));
 
 test('when the tagline wraps, no pop-up covers its other line, and only one is ever visible', async () => {
-  for (const o of [{ width: 1280, height: 800 }, { width: 390, height: 800, hasTouch: true }]) {
+  // widths where it wraps in Lato and in the fallback font alike (a cold first visit may use either)
+  for (const o of [{ width: 700, height: 800 }, { width: 390, height: 800, hasTouch: true }]) {
     await withPage(o, async (page, base) => {
       await page.goto(base + '/', { waitUntil: 'commit' });
       await page.waitForSelector('#tagline.ready', { state: 'attached', timeout: 10000 });
