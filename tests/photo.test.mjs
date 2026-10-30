@@ -1,41 +1,74 @@
-// The photo arrives like a diffusion sample: noise first, then coarse shapes, then detail.
+// The photo arrives like a pixel-art diffusion sample: coloured noise first, then big blocks, then detail.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { withPage } from './helpers/browser.mjs';
 
-// How far the canvas is from the photo underneath it, and how noisy it is (mean |difference| between
-// neighbouring pixels, 0–255): pure noise is very rough, a face is smooth.
+// What the canvas shows right now, or null when it's not covering the photo. The canvas is one pixel
+// per cell (CSS scales it up, pixelated). `diff` is its mean |difference| (0–255) from the photo
+// shrunk to the same grid with the same crop as the <img> (cover, 22% from the top); `rgb` its mean colour.
 const look = page => page.evaluate(() => {
-  const c = document.querySelector('.photo canvas');
+  const c = document.querySelector('.photo canvas'), img = document.querySelector('.photo img');
   if (!c || getComputedStyle(c).opacity === '0') return null;
-  const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
-  let rough = 0, n = 0;
-  for (let y = c.height * .3 | 0; y < c.height * .7; y++) for (let x = c.width * .3 | 0; x < c.width * .7; x++) {
-    const i = (y * c.width + x) * 4; rough += Math.abs(d[i] - d[i + 4]); n++;
-  }
-  return { rough: rough / n, step: document.querySelector('.photo .tstep').textContent };
+  const n = c.width, d = c.getContext('2d').getImageData(0, 0, n, n).data;
+  const ref = document.createElement('canvas'); ref.width = ref.height = n;
+  const rg = ref.getContext('2d'), k = Math.max(n / img.naturalWidth, n / img.naturalHeight);
+  const dw = img.naturalWidth * k, dh = img.naturalHeight * k;
+  rg.drawImage(img, (n - dw) * .5, (n - dh) * .22, dw, dh);
+  const r = rg.getImageData(0, 0, n, n).data, rgb = [0, 0, 0];
+  let diff = 0;
+  for (let i = 0; i < d.length; i += 4) for (let ch = 0; ch < 3; ch++) { diff += Math.abs(d[i + ch] - r[i + ch]); rgb[ch] += d[i + ch]; }
+  return { n, diff: diff / (n * n * 3), rgb: rgb.map(v => v / (n * n)), scheme: document.querySelector('.photo').dataset.scheme };
 });
+const frames = async (page, ms = 12000) => {
+  const out = [], t0 = Date.now();
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('.photo canvas') || document.body).opacity === '1', null, { timeout: 10000 });
+  for (let f; Date.now() - t0 < ms && (f = await look(page)); await page.waitForTimeout(80)) out.push({ ...f, at: Date.now() - t0 });
+  return out;
+};
 
-test('on load the photo denoises out of pure noise, counting t down to 0, then the real photo shows', () => withPage({}, async (page, base) => {
+test('on load the photo is drawn out of red pixel noise, block by block, slowly, then the real photo shows', () => withPage({}, async (page, base) => {
   await page.goto(base + '/', { waitUntil: 'commit' });
   await page.waitForSelector('.photo canvas', { state: 'attached', timeout: 10000 });
-  const frames = [];
-  for (let i = 0; i < 40; i++) { const f = await look(page); if (f) frames.push(f); await page.waitForTimeout(60); }
-  assert.ok(frames.length > 5, `${frames.length} frames seen`);
-  assert.ok(frames[0].rough > 40, `starts as noise (roughness ${frames[0].rough.toFixed(0)})`);
-  const steps = frames.map(f => +f.step.match(/\d+/)[0]);
-  assert.ok(steps.every((s, i) => i === 0 || s <= steps[i - 1]), `t counts down: ${steps}`);
+  const fs = await frames(page);
+  assert.ok(fs.length > 10, `${fs.length} frames seen`);
+  const [first, last] = [fs[0], fs.at(-1)];
+  assert.equal(await page.locator('.photo .tstep').count(), 0, 'no t = … label');
+  assert.doesNotMatch(await page.textContent('.photo'), /t\s*=/);
+  assert.equal(await page.$eval('.photo canvas', c => getComputedStyle(c).imageRendering), 'pixelated');
+  assert.ok(first.n <= 12, `starts as a few big blocks (${first.n} across)`);
+  assert.ok(fs.every((f, i) => i === 0 || f.n >= fs[i - 1].n), `blocks only get finer: ${fs.map(f => f.n)}`);
+  assert.ok(last.n >= 64, `ends fine-grained (${last.n} across)`);
+  assert.equal(first.scheme, 'ember');
+  const [r, g, b] = first.rgb;
+  assert.ok(r > g + 30 && r > b + 30, `starts in a red scheme (mean rgb ${first.rgb.map(Math.round)})`);
+  assert.ok(first.diff > 2.5 * last.diff && last.diff < 20, `converges on the photo: ${fs.map(f => Math.round(f.diff))}`);
+  assert.ok(last.at >= 3000, `takes its time (${last.at} ms)`);
   await page.waitForFunction(() => getComputedStyle(document.querySelector('.photo canvas')).opacity === '0', null, { timeout: 10000 });
   assert.equal(await page.$eval('.photo img', i => getComputedStyle(i).visibility), 'visible');
   assert.deepEqual(page.__errors, []);
 }));
 
+test('each rerun starts from a different colour scheme', () => withPage({}, async (page, base) => {
+  await page.goto(base + '/');
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('.photo canvas')).opacity === '0', null, { timeout: 15000 });
+  const seen = ['ember'];
+  for (let i = 0; i < 2; i++) {
+    await page.hover('.photo');
+    await page.waitForFunction(() => getComputedStyle(document.querySelector('.photo canvas')).opacity !== '0', null, { timeout: 3000 });
+    const s = await page.$eval('.photo', el => el.dataset.scheme);
+    assert.notEqual(s, seen.at(-1), `rerun ${i + 1} repeated ${s}`);
+    seen.push(s);
+    await page.mouse.move(5, 5);
+    await page.waitForFunction(() => getComputedStyle(document.querySelector('.photo canvas')).opacity === '0', null, { timeout: 15000 });
+  }
+}));
+
 test('resting the pointer on the photo (or tapping it) runs it again', () => withPage({}, async (page, base) => {
   await page.goto(base + '/');
-  await page.waitForFunction(() => getComputedStyle(document.querySelector('.photo canvas')).opacity === '0', null, { timeout: 10000 });
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('.photo canvas')).opacity === '0', null, { timeout: 15000 });
   await page.hover('.photo');
   await page.waitForFunction(() => getComputedStyle(document.querySelector('.photo canvas')).opacity !== '0', null, { timeout: 3000 });
-  await page.waitForFunction(() => getComputedStyle(document.querySelector('.photo canvas')).opacity === '0', null, { timeout: 10000 });
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('.photo canvas')).opacity === '0', null, { timeout: 15000 });
 }));
 
 test('with reduced motion the photo is just there', () => withPage({ reducedMotion: true }, async (page, base) => {

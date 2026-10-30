@@ -198,17 +198,15 @@ html.js #tagline:not(.ready) { visibility: hidden; animation: tagline-fallback 0
 #tagline .cands > *::before, #tagline .lp::before { content: attr(data-t); }
 #tagline .tok:hover .lp { opacity: 1; }
 
-/* Photo denoising (js/photo.js): the canvas covers the photo only while a sample is being drawn. */
-.photo canvas { opacity: 0; transition: opacity .35s; }
-.photo .tstep { position: absolute; left: 50%; bottom: 13%; transform: translateX(-50%); padding: 3px 7px; border-radius: 8px;
-  font: 600 10px/1 var(--mono); color: #fff; background: rgba(0, 0, 0, .55); white-space: nowrap; pointer-events: none;
-  opacity: 0; transition: opacity .35s; }
-.photo.noising canvas, .photo.noising .tstep { opacity: 1; transition: none; }
-/* Until the script takes over, the photo starts as noise rather than flashing the finished picture.
-   If the script never arrives, the noise lifts after a moment. */
+/* Photo diffusion (js/photo.js): the canvas, one pixel per cell scaled up crisp, covers the photo only
+   while a sample is being drawn. */
+.photo canvas { opacity: 0; transition: opacity .6s; image-rendering: pixelated; }
+.photo.noising canvas { opacity: 1; transition: none; }
+/* Until the script takes over, the photo starts as the same red block noise (a 6×6 image, scaled up
+   crisp) rather than flashing the finished picture. If the script never arrives, the noise lifts after a moment. */
 @media (prefers-reduced-motion: no-preference) {
-  html.js .photo:not(.ready)::after { content: ""; position: absolute; inset: 0; background: #808080 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
-    animation: photo-fallback 0s 1.2s forwards; }
+  html.js .photo:not(.ready)::after { content: ""; position: absolute; inset: 0; background: #5e0d1f url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAYAAAAGCAIAAABvrngfAAAAdklEQVR42mOYLKF+21N3mqRGj7iaF7fUDEkNhu8zUq446X7tiTpqrHvRXveAni6DLJvAhwJHoMJbHrpANhAx+HFLVwkrn7LQXS2rfcdLN41fgQHIAapP4VP4f7L/vq/ez6UFDJn8ijG8cp1iakuktZ4G6wFNBABdGSW4AtFQQQAAAABJRU5ErkJggg==") 0 0 / 100% 100%;
+    image-rendering: pixelated; animation: photo-fallback 0s 1.2s forwards; }
 }
 @keyframes photo-fallback { to { opacity: 0; } }
 
