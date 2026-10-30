@@ -1,0 +1,283 @@
+/* Layout after Jon Barron's site: one centred column, papers as thumbnail + text rows. */
+
+/* Lato, served from this site (latin subset, OFL: fonts/OFL.txt). `optional` means the browser
+   uses Lato only if it arrives almost at once (the pages preload it); otherwise that visit keeps
+   the fallback font, so the text never reflows mid-read. */
+@font-face { font-family: "Lato"; font-style: normal; font-weight: 400; font-display: optional; src: url(../fonts/lato-400.woff2) format("woff2"); }
+@font-face { font-family: "Lato"; font-style: normal; font-weight: 700; font-display: optional; src: url(../fonts/lato-700.woff2) format("woff2"); }
+@font-face { font-family: "Lato"; font-style: italic; font-weight: 400; font-display: optional; src: url(../fonts/lato-400-italic.woff2) format("woff2"); }
+
+:root {
+  color-scheme: light dark; /* native scrollbars, controls and the first paint follow the theme */
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --muted: #555;
+  --faint: #767676; /* the lightest grey that still reads at 4.5:1 on white */
+  --rule: #e6e6e6;
+  --link: #1772d0;
+  --link-hover: #b35400; /* orange that still reads at 4.5:1 on white and on the highlight */
+  --hl: #fffbea;
+  --thumb-bg: #f4f5f7;
+  --lead-bg: #1a1a1a;
+  --lead-fg: #ffffff;
+  --core-bg: #e8f0fb;
+  --core-fg: #1557a0;
+  --orange: #F44900;
+  --teal: #2A5160;
+  --green: #2f8f47;
+  --contour: 42, 81, 96;
+  --contour-alpha: .065;
+  --bot-shell: #f6f3ec;
+  --bot-visor: #1d2b33;
+  --bot-eye: #8ef0ff;
+  --serif: Georgia, "Times New Roman", serif;
+  --sans: "Lato", "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111214;
+    --text: #e6e6e6;
+    --muted: #b4b7bd;
+    --faint: #8d929b;
+    --rule: #2a2c31;
+    --link: #6fb1ff;
+    --link-hover: #ffb35c;
+    --hl: #18202b;
+    --thumb-bg: #1b1c1f;
+    --lead-bg: #e6e6e6;
+    --lead-fg: #111214;
+    --core-bg: #1d2a3d;
+    --core-fg: #9cc4ff;
+    --teal: #7fb3c4;
+    --contour: 127, 179, 196;
+    --contour-alpha: .058;
+    --bot-shell: #e9e5dc;
+  }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 var(--sans); }
+a { color: var(--link); text-decoration: none; }
+a:hover, a:focus-visible { color: var(--link-hover); }
+/* Links inside a line of grey text (paper links, Miscellanea, footer) get a faint underline,
+   so they don't rely on colour alone to stand out. */
+.m a, .misc dd a, footer a { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px;
+  text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); }
+/* In dark mode the link blue is too close to the body text's light grey (under 3:1), so links in the
+   bio and news get the same faint underline. In light mode the colours alone are distinct enough. */
+@media (prefers-color-scheme: dark) {
+  .intro p:not(.links) a, .news a { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px;
+    text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); }
+}
+a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+
+.page { max-width: 860px; margin: 0 auto; padding: 40px 24px 32px; }
+h2 { font: 400 23px/1.3 var(--serif); margin: 34px 0 8px; }
+p { margin: 0 0 10px; }
+
+/* Header */
+.hdr { position: relative; display: flex; gap: 36px; align-items: center; }
+.hdr .intro { flex: 1; min-width: 0; }
+.nm { text-align: center; margin-bottom: 10px; }
+#name { font: 400 36px/1.15 var(--serif); margin: 0; display: inline-block; }
+.dev { font-size: 15px; color: var(--faint); margin-top: 2px; }
+#tagline { font: italic 400 17px/1.5 var(--serif); text-align: center; margin: 4px 0 14px; }
+.links { text-align: center; margin-top: 12px; }
+.photo { position: relative; width: 200px; height: 200px; border-radius: 50%; overflow: hidden; flex-shrink: 0; }
+.photo img, .photo canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.photo img { object-fit: cover; object-position: 50% 22%; }
+
+/* News */
+/* The news scrolls in its own box, newest first. Soft shadows at the top and bottom edges appear only
+   when there is more to scroll to (the `local` covers scroll with the content and hide them at the ends). */
+.news-box { max-height: 13.4em; overflow-y: auto; border-radius: 4px;
+  background: linear-gradient(var(--bg) 30%, transparent) top / 100% 24px no-repeat local,
+    linear-gradient(transparent, var(--bg) 70%) bottom / 100% 24px no-repeat local,
+    radial-gradient(farthest-side at 50% 0, color-mix(in srgb, var(--text) 14%, transparent), transparent) top / 100% 9px no-repeat scroll,
+    radial-gradient(farthest-side at 50% 100%, color-mix(in srgb, var(--text) 14%, transparent), transparent) bottom / 100% 9px no-repeat scroll; }
+.news-box:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.news { list-style: none; margin: 0; padding: 0 0 0 14px; border-left: 2px solid var(--rule); }
+/* date | text as two columns, so a wrapped line lines up with the text, not under the date */
+.news li { display: grid; grid-template-columns: 5.6em 1fr; gap: 0 6px; margin-bottom: 6px; line-height: 1.5; }
+.news .d { color: var(--faint); font-variant-numeric: tabular-nums; }
+/* "Now": what he's on this month, dated so a stale line is obvious */
+.now { margin: 0 0 12px; padding: 0 0 0 14px; border-left: 2px solid var(--orange); line-height: 1.5; }
+.now .d { color: var(--faint); font-variant-numeric: tabular-nums; margin: 0 4px; }
+
+/* Paper rows */
+.row { display: flex; gap: 22px; padding: 16px 12px; border-radius: 8px; align-items: flex-start; }
+.row.hl { background: var(--hl); }
+.row.sm { padding: 10px 12px; }
+.body { flex: 1; min-width: 0; }
+.t { margin: 0; font-weight: 700; font-size: 15.5px; line-height: 1.4; }
+.m { font-size: 13.8px; color: var(--muted); margin: 3px 0; overflow-wrap: anywhere; }
+.m b { color: var(--text); }
+.s { font-size: 13.8px; margin: 6px 0 0; }
+.pill { display: inline-block; font: 700 10.5px/1 var(--sans); letter-spacing: .05em; padding: 3px 7px; border-radius: 9px; margin-left: 8px; vertical-align: 2px; white-space: nowrap; }
+.pill.lead { background: var(--lead-bg); color: var(--lead-fg); }
+.pill.core { background: var(--core-bg); color: var(--core-fg); }
+
+.thumb { position: relative; width: 180px; aspect-ratio: 16 / 10; flex-shrink: 0; border-radius: 6px; overflow: hidden; background: var(--thumb-bg); box-shadow: 0 0 0 1px var(--rule); }
+.row.hl .thumb { width: 240px; aspect-ratio: 16 / 9; }
+.row.sm .thumb { width: 120px; }
+.thumb img, .thumb video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #fff; transition: opacity .25s ease; }
+.thumb .anim { opacity: 0; }
+.thumb.playing .anim { opacity: 1; }
+.thumb.playing .still { opacity: 0; }
+.thumb .play { position: absolute; right: 6px; bottom: 6px; z-index: 2; width: 28px; height: 28px; border: 0; border-radius: 50%;
+  background: rgba(17, 17, 17, .72); color: #fff; font-size: 12px; cursor: pointer; }
+.thumb span.play { display: grid; place-items: center; pointer-events: none; } /* touch screens: a hint that a tap plays it */
+@media (prefers-color-scheme: dark) { .thumb img, .thumb video { filter: brightness(.88); } }
+
+/* Miscellanea */
+/* One entry per line: the lead in body colour, the details muted, the year in a right-hand column. */
+.misc { margin: 0; display: grid; grid-template-columns: 120px 1fr; gap: 14px 16px; font-size: 14.5px; line-height: 1.5; }
+.misc dt { font: 700 11px/2 var(--sans); letter-spacing: .09em; text-transform: uppercase; color: var(--muted); padding-top: 1px; }
+.misc dd { margin: 0; }
+.misc ul { list-style: none; margin: 0; padding: 0; }
+.misc li { display: grid; grid-template-columns: 1fr auto; gap: 0 16px; color: var(--muted); }
+.misc li + li { margin-top: 4px; }
+.misc .k { color: var(--text); }
+.misc .y { color: var(--faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+footer { margin-top: 36px; padding-top: 16px; border-top: 1px solid var(--rule); text-align: center; font-size: 13.5px; color: var(--faint); }
+footer q { display: block; max-width: 640px; margin: 0 auto 4px; font: italic 14px/1.6 var(--serif); color: var(--muted); }
+footer .who { display: block; margin-bottom: 10px; }
+
+/* Tablet widths: a smaller photo leaves the name room to stay on one line. */
+@media (min-width: 600.02px) and (max-width: 760px) { /* .02: no gap with max-width: 600px at zoomed, fractional widths */
+  .hdr { gap: 24px; }
+  .photo { width: 150px; height: 150px; }
+}
+
+/* No side margin for the robot below this width (js/robot.js): it peeks from the corner and climbs
+   out at the end of the page, so the page ends with room for it beside the footer. */
+@media (max-width: 1011.98px) { .page { padding-bottom: 112px; } }
+
+@media (max-width: 600px) {
+  .page { padding: 24px 16px 96px; } /* room at the end so the footer clears the robot's corner */
+  .hdr { flex-direction: column-reverse; gap: 16px; }
+  .photo { width: 150px; height: 150px; }
+  #name { font-size: 30px; }
+  .row, .row.sm { flex-direction: column; gap: 10px; padding: 12px 8px; }
+  .thumb, .row.hl .thumb, .row.sm .thumb { width: 100%; aspect-ratio: 16 / 9; }
+  /* contact links straight after the tagline, before the bio, with room for a thumb */
+  .intro { display: flex; flex-direction: column; }
+  .intro > p:not(#tagline):not(.links) { order: 1; }
+  .links { margin: 0 0 12px; }
+  .links a { display: inline-block; padding: 6px 2px; }
+  .misc { grid-template-columns: 1fr; gap: 4px; }
+  .misc dt { margin-top: 12px; }
+  .news-box { max-height: 19em; }
+}
+
+/* Tagline decode (js/tagline.js) */
+/* With JS on, the tagline stays hidden (keeping its space) until the decoder takes over, instead of
+   flashing the finished sentence first. If the script never arrives, it shows after a moment. */
+html.js #tagline:not(.ready) { visibility: hidden; animation: tagline-fallback 0s 1.2s forwards; }
+@keyframes tagline-fallback { to { visibility: visible; } }
+/* The hidden overlays still occupy layout; clip sideways so they can't widen a phone page. */
+#tagline { overflow-x: clip; text-wrap: balance; }
+#tagline .tok { position: relative; display: inline-block; border-radius: 3px; transition: background-color .3s; }
+#tagline .tok.pending { color: transparent; }
+#tagline .tok:hover { background: color-mix(in srgb, var(--orange) 12%, transparent); }
+#tagline .cands, #tagline .lp { position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap; pointer-events: none;
+  user-select: none; font: normal 11px/1.35 var(--mono); opacity: 0; transition: opacity .15s; }
+#tagline .cands { bottom: calc(100% + 2px); display: flex; flex-direction: column; color: var(--faint); background: var(--bg);
+  padding: 3px 7px; border-radius: 5px; box-shadow: 0 0 0 1px var(--rule), 0 4px 12px rgba(0, 0, 0, .08); }
+#tagline .cands b { color: var(--orange); font-weight: 600; }
+/* Pop-ups fade in but vanish at once, so the next word's never overlaps a fading one. */
+#tagline .cands { transition: none; }
+#tagline .cands.on { opacity: 1; transition: opacity .15s; }
+/* When the sentence wraps (js/tagline.js marks the lines), overlays open away from its other line. */
+#tagline .tok:not(.l-first) .cands { bottom: auto; top: calc(100% + 2px); flex-direction: column-reverse; }
+#tagline .tok:not(.l-last) .lp { top: auto; bottom: 100%; }
+#tagline .lp { top: 100%; color: var(--teal); }
+#tagline .cands > *::before, #tagline .lp::before { content: attr(data-t); }
+#tagline .tok:hover .lp { opacity: 1; }
+
+/* Photo diffusion (js/photo.js): the canvas, one pixel per cell scaled up crisp, covers the photo only
+   while a sample is being drawn. */
+.photo canvas { opacity: 0; transition: opacity .6s; image-rendering: pixelated; }
+.photo.noising canvas { opacity: 1; transition: none; }
+/* Until the script takes over, the photo starts as the same red block noise (a 6×6 image, scaled up
+   crisp) rather than flashing the finished picture. If the script never arrives, the noise lifts after a moment. */
+@media (prefers-reduced-motion: no-preference) {
+  html.js .photo:not(.ready)::after { content: ""; position: absolute; inset: 0; background: #5e0d1f url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAYAAAAGCAIAAABvrngfAAAAdklEQVR42mOYLKF+21N3mqRGj7iaF7fUDEkNhu8zUq446X7tiTpqrHvRXveAni6DLJvAhwJHoMJbHrpANhAx+HFLVwkrn7LQXS2rfcdLN41fgQHIAapP4VP4f7L/vq/ez6UFDJn8ijG8cp1iakuktZ4G6wFNBABdGSW4AtFQQQAAAABJRU5ErkJggg==") 0 0 / 100% 100%;
+    image-rendering: pixelated; animation: photo-fallback 0s 1.2s forwards; }
+}
+@keyframes photo-fallback { to { opacity: 0; } }
+
+/* IsoCompute "try it" figure (js/isofig.js). Series colours pass the colour-blind checks in both themes. */
+:root { --iso-easy: #d4500f; --iso-hard: #1772d0; }
+@media (prefers-color-scheme: dark) { :root { --iso-easy: #e8662b; --iso-hard: #3f8fe8; } }
+.isofig { margin-top: 10px; font-size: 13.8px; }
+.isofig > summary { cursor: pointer; width: max-content; max-width: 100%; color: var(--link); }
+.isofig > summary:hover { color: var(--link-hover); }
+.isofig figure { margin: 8px 0 0; }
+.isofig .ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; }
+.isofig .ctl label { white-space: nowrap; }
+.isofig input[type=range] { width: 170px; vertical-align: middle; accent-color: var(--muted); }
+.isofig .sw { display: inline-block; width: 14px; height: 2px; margin: 0 5px 0 3px; vertical-align: middle; border-radius: 1px; }
+.isofig .sw.easy { background: var(--iso-easy); }
+.isofig .sw.hard { background: var(--iso-hard); }
+.isofig svg { display: block; width: 100%; max-width: 520px; height: auto; margin-top: 6px; touch-action: pan-y; cursor: crosshair; }
+.isofig svg .grid { stroke: var(--rule); stroke-width: 1; }
+.isofig svg .tick, .isofig svg .axis, .isofig svg .end { font: 10.5px var(--sans); fill: var(--faint); }
+.isofig svg .tick { font-variant-numeric: tabular-nums; }
+.isofig svg .end { fill: var(--muted); }
+.isofig svg .curve { fill: none; stroke-width: 2; stroke-linecap: round; transition: opacity .2s; }
+.isofig svg .curve.easy { stroke: var(--iso-easy); }
+.isofig svg .curve.hard { stroke: var(--iso-hard); }
+.isofig svg .curve.dim { opacity: .35; }
+.isofig svg .cross { stroke: var(--muted); stroke-width: 1; }
+.isofig svg .dot { stroke: var(--hl); stroke-width: 2; }
+.isofig svg .dot.easy { fill: var(--iso-easy); }
+.isofig svg .dot.hard { fill: var(--iso-hard); }
+.isofig .out { margin: 2px 0 6px; font-variant-numeric: tabular-nums; }
+.isofig figcaption { font-size: 12.5px; color: var(--muted); }
+.isofig table { border-collapse: collapse; margin-top: 6px; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.isofig th, .isofig td { padding: 2px 14px 2px 0; text-align: left; font-weight: 400; }
+.isofig th { color: var(--muted); border-bottom: 1px solid var(--rule); }
+
+/* Contour background (js/contours.js): a fixed, static canvas under everything */
+canvas.topo { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; pointer-events: none; }
+
+/* Robot (js/robot.js): fixed to the bottom edge; JS sets its x position */
+.bot { position: fixed; bottom: 6px; left: 0; width: 76px; height: 92px; z-index: 40; cursor: pointer; pointer-events: none;
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; }
+.bot .hit { pointer-events: all; } /* clicks land on the robot's outline only; the rest of its box lets them through */
+.bot svg { width: 100%; height: 100%; overflow: visible; display: block; }
+.bot .bubble { position: absolute; bottom: 96px; left: 0; width: 230px; padding: 9px 12px; border-radius: 12px; pointer-events: none;
+  background: var(--bg); color: var(--text); border: 1px solid var(--rule); box-shadow: 0 6px 20px rgba(0, 0, 0, .12);
+  font: 13px/1.45 var(--sans); opacity: 0; transform: translateY(6px) scale(.96); transition: opacity .18s, transform .18s; }
+.bot .bubble.on { opacity: 1; transform: none; }
+.bot .bubble small { display: block; margin-bottom: 3px; color: var(--faint); font: 600 10px var(--mono); letter-spacing: .04em; }
+.bot .bubble::after { content: ""; position: absolute; bottom: -6px; left: var(--tail, 50%); width: 10px; height: 10px; background: var(--bg);
+  border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); transform: translateX(-50%) rotate(45deg); }
+.bot-tag { position: fixed; z-index: 41; pointer-events: none; white-space: nowrap; padding: 2px 6px; border-radius: 6px;
+  font: 600 10.5px var(--mono); color: var(--teal); background: var(--bg); border: 1px solid var(--rule); transition: opacity .3s; }
+.bot-fx { position: fixed; z-index: 41; pointer-events: none; font: 700 15px/1 var(--sans); }
+@media (max-width: 600px) { .bot { width: 60px; height: 73px; } .bot .bubble { bottom: 76px; } }
+@media print { .bot, canvas.topo { display: none; } }
+
+/* /travel (unlisted) */
+.travel .back { margin: 0 0 18px; }
+.page-title { font: 400 32px/1.2 var(--serif); margin: 0 0 12px; }
+.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; margin: 18px 0 8px; }
+.gallery figure { margin: 0; }
+.gallery a { display: block; border-radius: 8px; cursor: zoom-in; }
+.gallery img { width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 8px; display: block; }
+.gallery figcaption { font-size: 13.5px; color: var(--muted); margin-top: 6px; }
+dialog.lightbox { border: 0; padding: 0; background: transparent; max-width: 94vw; max-height: 94vh; overflow: visible; }
+dialog.lightbox::backdrop { background: rgba(10, 10, 12, .86); }
+dialog.lightbox img { display: block; max-width: 94vw; max-height: 84vh; border-radius: 6px; }
+dialog.lightbox .cap { color: #e6e6e6; text-align: center; margin: 8px 0 0; font-size: 14px; }
+dialog.lightbox .close { position: absolute; top: -14px; right: -14px; width: 32px; height: 32px; border: 0; border-radius: 50%;
+  background: #fff; color: #111; font-size: 20px; line-height: 1; cursor: pointer; }
+dialog.lightbox .prev, dialog.lightbox .next { position: absolute; top: calc(50% - 22px); width: 44px; height: 44px; border: 0; border-radius: 50%;
+  background: rgba(255, 255, 255, .85); color: #111; font-size: 26px; line-height: 1; cursor: pointer; }
+dialog.lightbox .prev { left: 8px; }
+dialog.lightbox .next { right: 8px; }
