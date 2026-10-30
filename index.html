@@ -58,6 +58,8 @@
   <script type="module" src="js/tagline.js"></script>
   <script type="module" src="js/contours.js"></script>
   <script type="module" src="js/robot.js"></script>
+  <script type="module" src="js/photo.js"></script>
+  <script type="module" src="js/isofig.js"></script>
   <script defer src="https://cloud.umami.is/script.js" data-website-id="9cc9630e-58da-45b4-a135-88c8f41d3212" data-domains="nightlessbaron.github.io" data-do-not-track="true"></script>
 </head>
 <body>
@@ -84,7 +86,7 @@
         <a rel="me" href="https://www.linkedin.com/in/varad0309/">LinkedIn</a>
       </p>
     </div>
-    <img class="photo" src="images/varad.webp" alt="Photo of Varad Pimpalkhute" width="400" height="468">
+    <div class="photo"><img src="images/varad.webp" alt="Photo of Varad Pimpalkhute" width="400" height="468"></div>
   </header>
 
   <section id="news">
@@ -143,6 +145,20 @@
         <div class="m">Zhoujun Cheng, Yutao Xie, Yuxiao Qu, Amrith Setlur, Shibo Hao, <b>Varad Pimpalkhute</b>, Tongtong Liang, Feng Yao, Zhengzhong Liu, Eric Xing, Virginia Smith, Ruslan Salakhutdinov, Zhiting Hu, Taylor Killian, Aviral Kumar</div>
         <div class="m"><i>arXiv</i>, 2026 &nbsp;·&nbsp; <a href="https://compute-optimal-rl-llm-scaling.github.io/">playbook</a> / <a href="https://arxiv.org/abs/2603.12151">arXiv</a> / <a href="https://x.com/ChengZhoujun/status/2013686575499223474">thread</a></div>
         <p class="s">The compute-optimal number of rollouts per problem grows predictably with budget, then saturates. Extra rollouts sharpen the policy on easy problems and expand coverage on hard ones.</p>
+        <details class="isofig">
+          <summary>Try it: how many rollouts per problem?</summary>
+          <figure>
+            <figcaption>The paper's fitted compute-optimal number of parallel rollouts per problem, n*, against sampling compute C = B<sub>problem</sub>·n·M (Fig. 7; Qwen2.5-7B-Instruct, GRPO, 32 problems per batch, math). M is the number of training steps the rest of the budget buys. Exact values depend on the setting; the shape is the finding.</figcaption>
+            <table>
+              <tr><th scope="col">C (rollouts)</th><th scope="col">n*, easy</th><th scope="col">n*, hard</th></tr>
+              <tr><td>10⁵</td><td>7</td><td>—</td></tr>
+              <tr><td>3 × 10⁵</td><td>13</td><td>9</td></tr>
+              <tr><td>10⁶</td><td>118</td><td>73</td></tr>
+              <tr><td>3 × 10⁶</td><td>372</td><td>149</td></tr>
+              <tr><td>10⁷</td><td>444</td><td>153</td></tr>
+            </table>
+          </figure>
+        </details>
       </div>
     </div>
 
