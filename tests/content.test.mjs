@@ -62,4 +62,6 @@ test('facts and wording Varad set', () => withPage({}, async (page, base) => {
   assert.ok(await page.locator('a[href="mailto:pimpalkhutevarad@gmail.com"]').count() > 0);
   assert.ok(await page.locator('a[href="files/VARAD_CV_ML.pdf"]').count() > 0);
   assert.equal(await page.locator('a[href*="travel"]').count(), 0, 'the travel page is never linked');
+  const press = await page.$$eval('#misc dt', dts => dts.find(d => d.textContent === 'Press').nextElementSibling.textContent);
+  for (const o of ['VentureBeat', 'CNBC', 'Semafor', 'Euronews', 'The National', 'Khaleej Times']) assert.ok(press.includes(o), `Press missing ${o}`);
 }));
