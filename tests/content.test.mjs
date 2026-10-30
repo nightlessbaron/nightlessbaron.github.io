@@ -83,7 +83,8 @@ test('copy, contact links and forbidden strings', () => withPage({}, async (page
 test('claims are scoped the way Varad stated them', () => withPage({}, async (page, base) => {
   await page.goto(base + '/');
   const bio = await page.$eval('.intro', el => el.innerText);
-  assert.match(bio, /lead a small group within the post-training team/, 'he leads 3–4 people of a 10-person team');
+  assert.match(bio, /where I lead post-training RL research for reasoning/);
+  assert.doesNotMatch(bio, /small group/, 'Varad asked for this wording to go');
   assert.match(bio, /4× the throughput of a synchronous RL baseline/, 'the 4× says what it is measured against');
   assert.match(bio, /375B MoE/);
   assert.doesNotMatch(await page.textContent('body'), /400B/);
