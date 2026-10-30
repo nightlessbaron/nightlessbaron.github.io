@@ -92,6 +92,9 @@ p { margin: 0 0 10px; }
 /* date | text as two columns, so a wrapped line lines up with the text, not under the date */
 .news li { display: grid; grid-template-columns: 5.6em 1fr; gap: 0 6px; margin-bottom: 6px; line-height: 1.5; }
 .news .d { color: var(--faint); font-variant-numeric: tabular-nums; }
+/* "Now": what he's on this month, dated so a stale line is obvious */
+.now { margin: 0 0 12px; padding: 0 0 0 14px; border-left: 2px solid var(--orange); line-height: 1.5; }
+.now .d { color: var(--faint); font-variant-numeric: tabular-nums; margin: 0 4px; }
 .older > summary { cursor: pointer; width: max-content; margin: 2px 0 8px 16px; color: var(--link); font-size: 14px; }
 .older > summary:hover { color: var(--link-hover); }
 
@@ -115,7 +118,6 @@ p { margin: 0 0 10px; }
 .thumb .anim { opacity: 0; }
 .thumb.playing .anim { opacity: 1; }
 .thumb.playing .still { opacity: 0; }
-.thumb.placeholder { visibility: hidden; } /* no figure yet: keep the column so the text lines up, show no box */
 .thumb .play { position: absolute; right: 6px; bottom: 6px; z-index: 2; width: 28px; height: 28px; border: 0; border-radius: 50%;
   background: rgba(17, 17, 17, .72); color: #fff; font-size: 12px; cursor: pointer; }
 .thumb span.play { display: grid; place-items: center; pointer-events: none; } /* touch screens: a hint that a tap plays it */
@@ -143,7 +145,6 @@ footer .who { display: block; margin-bottom: 10px; }
   #name { font-size: 30px; }
   .row, .row.sm { flex-direction: column; gap: 10px; padding: 12px 8px; }
   .thumb, .row.hl .thumb, .row.sm .thumb { width: 100%; aspect-ratio: 16 / 9; }
-  .thumb.placeholder { display: none; }
   /* contact links straight after the tagline, before the bio, with room for a thumb */
   .intro { display: flex; flex-direction: column; }
   .intro > p:not(#tagline):not(.links) { order: 1; }

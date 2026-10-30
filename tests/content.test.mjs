@@ -15,7 +15,7 @@ test('highlighted research rows in order with role pills', () => withPage({}, as
   assert.equal(hl.length, 4);
   ['IsoCompute Playbook', 'RL360', 'K2 Horizon', 'Unlocking Lossless Speedups'].forEach((t, i) => assert.ok(hl[i].startsWith(t), `${hl[i]} should start with ${t}`));
   assert.deepEqual(await pillsOf(page, 'RL360'), ['LEAD']);
-  assert.deepEqual(await pillsOf(page, 'K2 Horizon'), ['CODING-AGENT POST-TRAINING LEAD']);
+  assert.deepEqual(await pillsOf(page, 'K2 Horizon'), ['CODING-AGENT LEAD']);
   assert.ok((await pillsOf(page, 'K2-V2')).includes('CORE CONTRIBUTOR'));
   assert.ok((await pillsOf(page, 'K2-Think')).includes('CORE CONTRIBUTOR'));
 }));
@@ -24,7 +24,7 @@ test('earlier research is shown in full with corrected details', () => withPage(
   await page.goto(base + '/');
   const titles = await rowTitles(page, '#earlier .row');
   assert.ok(titles.length >= 11, `expected >= 11 earlier rows, got ${titles.length}`);
-  assert.ok(await page.locator('.row').count() >= 22, 'no paper went missing when LLM-era rows moved to Research');
+  assert.ok(await page.locator('.row').count() >= 20, 'no paper went missing when LLM-era rows moved to Research');
   for (const t of ['Multiwinner Voting', 'Parkinson', 'Digital Image Noise Estimation', 'GEMS', 'MetaFaaS'])
     assert.ok(titles.some(x => x.includes(t)), `missing earlier row: ${t}`);
   const row = t => page.$$eval('#earlier .row', (rows, t) => {
@@ -38,9 +38,9 @@ test('earlier research is shown in full with corrected details', () => withPage(
   assert.match((await row('MetaFaaS')).text, /SIGMOD/);
 }));
 
-test('every paper row links to the paper (manuscripts in review aside)', () => withPage({}, async (page, base) => {
+test('every paper row links to the paper', () => withPage({}, async (page, base) => {
   await page.goto(base + '/');
-  const unlinked = await page.$$eval('.row', rows => rows.filter(r => !r.querySelector('.body a') && !/Manuscript, in review/.test(r.textContent))
+  const unlinked = await page.$$eval('.row', rows => rows.filter(r => !r.querySelector('.body a'))
     .map(r => r.querySelector('.t').textContent.trim()));
   assert.deepEqual(unlinked, []);
   const links = t => page.$$eval('.row', (rows, t) => [...rows.find(r => r.querySelector('.t').textContent.includes(t)).querySelectorAll('a')].map(a => a.href), t);

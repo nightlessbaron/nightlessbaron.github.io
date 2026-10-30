@@ -47,23 +47,16 @@ test('keyboard focus and hover keep links readable in light mode', () => withPag
   assert.ok(contrast(h, bg) >= 4.5, `hovered link ${h}`);
 }));
 
-test('no empty placeholder boxes: papers with a figure show it, the rest show no box', async () => {
-  for (const [width, shown] of [[1280, 'hidden'], [390, 'none']]) {
-    await withPage({ width, height: 800 }, async (page, base) => {
-      await page.goto(base + '/');
-      const ph = await page.$$eval('.thumb.placeholder', ts => ts.map(t => [getComputedStyle(t).visibility, getComputedStyle(t).display]));
-      for (const [vis, disp] of ph) assert.ok(width > 600 ? vis === shown : disp === shown, `${width}px placeholder ${vis}/${disp}`);
-      for (const t of ['DocQIR-Emb', 'GEMS', 'MetaFaaS', 'CBIR'])
-        assert.ok(await page.$$eval('.row', (rows, t) => !!rows.find(r => r.querySelector('.t').textContent.includes(t)).querySelector('.thumb img'), t), `${t} has a figure`);
-    });
-  }
-});
+test('papers that were missing a figure now show one', () => withPage({}, async (page, base) => {
+  await page.goto(base + '/');
+  for (const t of ['DocQIR-Emb', 'GEMS', 'MetaFaaS', 'CBIR'])
+    assert.ok(await page.$$eval('.row', (rows, t) => !!rows.find(r => r.querySelector('.t').textContent.includes(t)).querySelector('.thumb img'), t), `${t} has a figure`);
+}));
 
 test('LLM-era work sits under Research, not under "Earlier research" (which begins "Before LLMs")', () => withPage({}, async (page, base) => {
   await page.goto(base + '/');
   const earlier = await page.$$eval('#earlier .row .t', ts => ts.map(t => t.textContent));
-  for (const t of ['DocQIR-Emb', 'Bottleneck Discovery', 'Relational Knowledge Discovery'])
-    assert.ok(!earlier.some(x => x.includes(t)), `${t} is still under Earlier research`);
+  assert.ok(!earlier.some(x => x.includes('DocQIR-Emb')), 'DocQIR-Emb is still under Earlier research');
   const research = await page.$$eval('#research .row .t', ts => ts.map(t => t.textContent));
   assert.ok(research.some(x => x.includes('DocQIR-Emb')));
 }));
