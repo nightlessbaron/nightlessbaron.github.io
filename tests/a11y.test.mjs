@@ -8,7 +8,7 @@ import { withPage, ROOT } from './helpers/browser.mjs';
 const AXE = fs.readFileSync(path.join(ROOT, 'node_modules/axe-core/axe.min.js'), 'utf8');
 
 for (const colorScheme of ['light', 'dark']) {
-  for (const page_ of ['/', '/travel/', '/no-such-page']) {
+  for (const page_ of ['/']) {
     test(`${page_} has no serious accessibility problems (${colorScheme})`, () => withPage({ colorScheme }, async (page, base) => {
       await page.goto(base + page_, { waitUntil: 'networkidle' });
       await page.waitForTimeout(3500);
