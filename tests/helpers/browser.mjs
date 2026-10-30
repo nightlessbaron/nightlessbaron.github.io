@@ -1,7 +1,6 @@
 // Runs a test body against the site in headless Chromium, collecting page errors,
 // console errors and failed same-origin requests into page.__errors.
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
@@ -9,14 +8,15 @@ import { startServer } from './server.mjs';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const UMAMI = fs.readFileSync(path.join(ROOT, 'tests/fixtures/umami.js'));
-const CHROMIUM = process.env.CHROMIUM_PATH
-  || path.join(os.homedir(), '.cache/ms-playwright/chromium-1248/chrome-linux64/chrome');
+// The full Chromium that playwright-core installs (`npx playwright-core install chromium`), in its
+// new headless mode; CHROMIUM_PATH overrides it.
+const CHROMIUM = process.env.CHROMIUM_PATH;
 
 export async function withPage(opts = {}, fn) {
   const { width = 1280, height = 900, reducedMotion = false, colorScheme = 'light',
     javaScriptEnabled = true, hasTouch = false, screen, deviceScaleFactor } = opts;
   const server = await startServer(ROOT);
-  const browser = await chromium.launch({ executablePath: CHROMIUM });
+  const browser = await chromium.launch(CHROMIUM ? { executablePath: CHROMIUM } : { channel: 'chromium' });
   try {
     // `screen` lets a phone test have a screen taller than its viewport, as when the address bar is showing.
     const context = await browser.newContext({

@@ -3,11 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test --test-concurrency=1 \"tests/**/*.test.mjs\"",
+    "test": "node --test --test-concurrency=1 --test-timeout=180000 \"tests/**/*.test.mjs\"",
     "preview": "node -e \"import('./tests/helpers/server.mjs').then(m => m.startServer('.', +(process.env.PORT || 8765))).then(s => console.log('Preview at ' + s.url))\""
   },
   "devDependencies": {
     "axe-core": "4.14.0",
-    "playwright-core": "1.56.1"
+    "playwright-core": "1.64.1"
   }
 }
