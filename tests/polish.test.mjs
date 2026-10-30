@@ -61,20 +61,22 @@ test('LLM-era work sits under Research, not under "Earlier research" (which begi
   assert.ok(research.some(x => x.includes('DocQIR-Emb')));
 }));
 
-test('news shows the latest items, keeps older ones one click away, and never scrolls inside the page', () => withPage({}, async (page, base) => {
+test('news scrolls in its own box: the latest items show, the rest scroll into view, and it works from the keyboard', () => withPage({}, async (page, base) => {
   await page.goto(base + '/');
   const n = await page.evaluate(() => {
-    const visible = [...document.querySelectorAll('#news li')].filter(li => li.checkVisibility()).length;
-    const lists = [...document.querySelectorAll('#news ul')];
-    return { visible, total: document.querySelectorAll('#news li').length, scrolls: lists.some(u => u.scrollHeight > u.clientHeight + 1),
-      older: !!document.querySelector('#news details:not([open]) summary') };
+    const box = document.querySelector('#news .news-box'), r = box.getBoundingClientRect();
+    const lis = [...box.querySelectorAll('li')];
+    return { total: lis.length, shown: lis.filter(l => l.getBoundingClientRect().bottom <= r.bottom + 1).length,
+      scrolls: box.scrollHeight > box.clientHeight + 20, tab: box.tabIndex, label: box.getAttribute('aria-label') };
   });
-  assert.ok(n.visible >= 5 && n.visible <= 7, `${n.visible} visible`);
+  assert.ok(n.scrolls, 'the box scrolls');
+  assert.ok(n.shown >= 5 && n.shown <= 8, `${n.shown} items show before scrolling`);
   assert.ok(n.total >= 25, 'nothing was dropped');
-  assert.equal(n.scrolls, false);
-  assert.equal(n.older, true);
-  await page.click('#news summary');
-  assert.equal(await page.$$eval('#news li', ls => ls.filter(li => li.checkVisibility()).length), n.total);
+  assert.equal(n.tab, 0, 'keyboard users can scroll it');
+  assert.ok(n.label, 'and screen readers know what it is');
+  await page.focus('#news .news-box');
+  await page.keyboard.press('End');
+  await page.waitForFunction(() => document.querySelector('#news .news-box').scrollTop > 0, null, { timeout: 5000 });
   const jan = await page.$$eval('#news li', ls => ls.find(l => l.textContent.startsWith('Jan 2026')).innerHTML);
   assert.match(jan, /arxiv\.org\/abs\/2603\.12151/);
 }));

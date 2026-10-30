@@ -92,6 +92,7 @@
   <section id="news">
     <h2>News</h2>
     <p class="now"><b>Now</b> <span class="d">Oct 2026</span> Scaling off-policy RL for agents: data reuse, critical batch size, and compute-optimal training of reasoning models. RL360 is now open source.</p>
+    <div class="news-box" tabindex="0" role="region" aria-label="News (scrolls)">
     <ul class="news">
       <li><span class="d">Oct 2026</span> <span>We open-sourced <a href="https://github.com/ifm-ai/RL360">RL360</a>, the RL infrastructure behind K2 Horizon. <a href="https://x.com/IFM_AI/status/2113323642041840029">[thread]</a></span></li>
       <li><span class="d">Sep 2026</span> <span><a href="https://ifm.ai/blog/k2/">K2 Horizon</a> is out: six fully open models, from 0.9B to 375B.</span></li>
@@ -100,10 +101,6 @@
       <li><span class="d">Mar 2026</span> <span>Talked about K2 Think V2 at <a href="https://hardmode.media.mit.edu/">HARD MODE</a>, the MIT Media Lab's hardware × AI hackathon, and judged the projects.</span></li>
       <li><span class="d">Jan 2026</span> <span><a href="https://compute-optimal-rl-llm-scaling.github.io/">IsoCompute Playbook</a>: how to scale sampling compute for LLM RL (<a href="https://arxiv.org/abs/2603.12151">arXiv</a> in March). <a href="https://x.com/ChengZhoujun/status/2013686575499223474">[thread]</a></span></li>
       <li><span class="d">Dec 2025</span> <span><a href="https://arxiv.org/abs/2512.06201">K2-V2</a>, a 360-open, reasoning-enhanced LLM, is released.</span></li>
-    </ul>
-    <details class="older">
-      <summary>Older news</summary>
-    <ul class="news">
       <li><span class="d">Oct 2025</span> <span><a href="https://devpost.com/software/reviveagent">ReviveAgent</a> won Best Self-Improving Agent at WeaveHacks 2 (Weights &amp; Biases × Google Cloud).</span></li>
       <li><span class="d">Sep 2025</span> <span><a href="https://arxiv.org/abs/2509.07604">K2-Think</a>, a parameter-efficient reasoning system, is released.</span></li>
       <li><span class="d">Jun 2025</span> <span>Joined the Institute of Foundation Models as a Research Scientist.</span></li>
@@ -126,7 +123,7 @@
       <li><span class="d">2019</span> <span>SPIN 2019 paper on early-stage Parkinson's detection; TA for Signals &amp; Systems and the ACM-W Summer School on Algorithmic Game Theory.</span></li>
       <li><span class="d">Dec 2018</span> <span>Research intern at IIT Gandhinagar, where I was introduced to algorithmic game theory.</span></li>
     </ul>
-    </details>
+    </div>
   </section>
 
   <section id="research">
@@ -348,23 +345,54 @@
     <h2>Miscellanea</h2>
     <dl class="misc">
       <dt>Talks</dt>
-      <dd>K2 Think V2, at <a href="https://hardmode.media.mit.edu/">HARD MODE</a>: MIT Hardware × AI Hackathon, MIT Media Lab (Mar 2026)</dd>
+      <dd><ul>
+        <li><span><span class="k">K2 Think V2</span>, at <a href="https://hardmode.media.mit.edu/">HARD MODE</a>, the MIT Hardware × AI Hackathon, MIT Media Lab</span><span class="y">2026</span></li>
+      </ul></dd>
       <dt>Awards</dt>
-      <dd>Best Self-Improving Agent, WeaveHacks 2 (Weights &amp; Biases, 2025), for <a href="https://devpost.com/software/reviveagent">ReviveAgent</a>, with Shaurya Rohatgi and Vibhakar Mohta · Best Overall Student Project, <a href="https://seldonian.cs.umass.edu/Tutorials/contest/">Seldonian Toolkit Competition</a> (UMass Amherst, 2023), with Sahil Yerawar and Pranay Reddy</dd>
+      <dd><ul>
+        <li><span><span class="k">Best Self-Improving Agent</span>, WeaveHacks 2 (Weights &amp; Biases), for <a href="https://devpost.com/software/reviveagent">ReviveAgent</a> with Shaurya Rohatgi and Vibhakar Mohta</span><span class="y">2025</span></li>
+        <li><span><span class="k">Best Overall Student Project</span>, <a href="https://seldonian.cs.umass.edu/Tutorials/contest/">Seldonian Toolkit Competition</a>, UMass Amherst, with Sahil Yerawar and Pranay Reddy</span><span class="y">2023</span></li>
+      </ul></dd>
       <dt>Press</dt>
-      <dd>K2 Think: <a href="https://mbzuai.ac.ae/news/mbzuai-and-g42-launch-k2-think-a-leading-open-source-system-for-advanced-ai-reasoning/">MBZUAI and G42 launch</a> (2025) · K2-Think-V2: <a href="https://mbzuai.ac.ae/news/k2-think-v2-a-fully-sovereign-reasoning-model/">MBZUAI</a> · Articul8's Verilog-capable chip-design model: <a href="https://www.fiercesensors.com/ai/speak-ai-clearly-articul8-ai-boasts-performance-gains-dsm">Fierce Electronics</a> (2025)</dd>
+      <dd><ul>
+        <li><span><span class="k">K2-Think-V2</span>, <a href="https://mbzuai.ac.ae/news/k2-think-v2-a-fully-sovereign-reasoning-model/">a fully sovereign reasoning model</a> (MBZUAI)</span></li>
+        <li><span><span class="k">K2 Think</span>, <a href="https://mbzuai.ac.ae/news/mbzuai-and-g42-launch-k2-think-a-leading-open-source-system-for-advanced-ai-reasoning/">MBZUAI and G42 launch K2 Think</a></span><span class="y">2025</span></li>
+        <li><span><span class="k">Articul8's chip-design model</span>, <a href="https://www.fiercesensors.com/ai/speak-ai-clearly-articul8-ai-boasts-performance-gains-dsm">Verilog-capable and 2× open-source baselines</a> (Fierce Electronics)</span><span class="y">2025</span></li>
+      </ul></dd>
       <dt>Patents</dt>
-      <dd><a href="https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/12718151">US 12,718,151</a> (granted; MetaFaaS) · <a href="https://patents.google.com/patent/US20240160949A1/en">US 2024/0160949 A1</a> (application; GEMS)</dd>
-      <dt>Teaching</dt>
-      <dd>Industry mentor, UMass Amherst <a href="https://ds.cs.umass.edu/industry/industry-mentorship-program">Industry Mentorship Program</a> (Spring 2027): proposing and advising a research project for MS students · Graduate TA, UMass Amherst (2024) · TA, ACM-W Summer School on Algorithmic Game Theory, IIT Gandhinagar (2019; <a href="files/teaching/ACMW_Summer_School_AGT_2019.pdf">schedule</a>, 16 MB PDF) · TA, Signals &amp; Systems, IIIT Nagpur (Fall 2019; <a href="files/teaching/Course_Overview.pdf">course overview</a> / <a href="files/teaching/Signals_and_Systems_Question_Bank.zip">question bank</a> (29 MB zip) / <a href="files/IIR_Filter.pdf">IIR filter notes</a>)</dd>
-      <dt>Notes</dt>
-      <dd>Lecture series on <a href="files/Lecture_Series_on_Fair_Division.pdf">Fair Division</a> and <a href="files/Lecture_Series_on_Computational_Social_Choice.pdf">Computational Social Choice</a></dd>
-      <dt>Collaborations</dt>
-      <dd>IESL, UMass Amherst, with Andrew McCallum (box embeddings for hierarchical representations) · Fatima Fellowship, with Maruan Al-Shedivat (gradient hacking to reduce interference in multi-task training)</dd>
-      <dt>Projects</dt>
-      <dd>Metabolts, a meta-learning library on PyTorch Lightning (with Sébastien Arnold) · Through the Bias-oscope, on bias in text-to-image models (with Subhransu Maji) · function-call generation and hallucination mitigation · <a href="https://github.com/nightlessbaron/load_test_framework">Load Test Framework</a> · <a href="https://github.com/nightlessbaron/financial_reports_chatbot">Financial Reports Chatbot</a></dd>
+      <dd><ul>
+        <li><span><span class="k">US 12,718,151</span>, granted: <a href="https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/12718151">MetaFaaS</a>, meta-learning as a serverless service</span></li>
+        <li><span><span class="k">US 2024/0160949 A1</span>, application: <a href="https://patents.google.com/patent/US20240160949A1/en">GEMS</a>, efficient meta-subnetworks</span></li>
+      </ul></dd>
       <dt>Service</dt>
-      <dd>Judge, HARD MODE hackathon, MIT Media Lab (2026) · Reviewer for NeurIPS, ICLR, TMLR, EMNLP, and NAACL (first in 2021, for the SMM4H workshop) · for Nature, IEEE Transactions on Image Processing, and Elsevier journals</dd>
+      <dd><ul>
+        <li><span><span class="k">Reviewer</span> for NeurIPS, ICLR, TMLR, EMNLP, and NAACL, and for Nature Communications, IEEE Transactions on Image Processing, and Elsevier journals</span></li>
+        <li><span><span class="k">Judge</span>, HARD MODE hackathon, MIT Media Lab</span><span class="y">2026</span></li>
+      </ul></dd>
+      <dt>Teaching</dt>
+      <dd><ul>
+        <li><span><span class="k">Industry mentor</span> for MS research projects, UMass Amherst</span></li>
+        <li><span><span class="k">Graduate TA</span>, UMass Amherst</span><span class="y">2024</span></li>
+        <li><span><span class="k">TA, ACM-W Summer School on Algorithmic Game Theory</span>, IIT Gandhinagar (<a href="files/teaching/ACMW_Summer_School_AGT_2019.pdf">schedule</a>, 16 MB PDF)</span><span class="y">2019</span></li>
+        <li><span><span class="k">TA, Signals &amp; Systems</span>, IIIT Nagpur (<a href="files/teaching/Course_Overview.pdf">course overview</a> / <a href="files/teaching/Signals_and_Systems_Question_Bank.zip">question bank</a> (29 MB zip) / <a href="files/IIR_Filter.pdf">IIR filter notes</a>)</span><span class="y">Fall 2019</span></li>
+      </ul></dd>
+      <dt>Collaborations</dt>
+      <dd><ul>
+        <li><span><span class="k">IESL, UMass Amherst</span>, with Andrew McCallum: box embeddings for hierarchical representations</span></li>
+        <li><span><span class="k">Fatima Fellowship</span>, with Maruan Al-Shedivat: gradient hacking to reduce interference in multi-task training</span></li>
+      </ul></dd>
+      <dt>Projects</dt>
+      <dd><ul>
+        <li><span><span class="k">Metabolts</span>, a meta-learning library on PyTorch Lightning, with Sébastien Arnold</span></li>
+        <li><span><span class="k">Through the Bias-oscope</span>, on bias in text-to-image models, with Subhransu Maji</span></li>
+        <li><span><span class="k">Function calls vs. parametric knowledge</span>, and mitigating hallucination in LLM responses</span></li>
+        <li><span><span class="k"><a href="https://github.com/nightlessbaron/load_test_framework">Load Test Framework</a></span>, load testing and performance benchmarking</span></li>
+        <li><span><span class="k"><a href="https://github.com/nightlessbaron/financial_reports_chatbot">Financial Reports Chatbot</a></span>, question answering over financial reports</span></li>
+      </ul></dd>
+      <dt>Notes</dt>
+      <dd><ul>
+        <li><span><span class="k">Lecture series</span> on <a href="files/Lecture_Series_on_Fair_Division.pdf">Fair Division</a> and <a href="files/Lecture_Series_on_Computational_Social_Choice.pdf">Computational Social Choice</a></span></li>
+      </ul></dd>
     </dl>
   </section>
 </main>

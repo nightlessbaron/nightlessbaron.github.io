@@ -32,7 +32,7 @@ test('on a desktop every role pill sits on the last line of its title', () => wi
 test('service lists the venues he reviews for', () => withPage({}, async (page, base) => {
   await page.goto(base + '/');
   const service = await page.$$eval('#misc dt', dts => dts.find(d => d.textContent === 'Service').nextElementSibling.textContent);
-  for (const v of ['NeurIPS', 'ICLR', 'TMLR', 'EMNLP', 'NAACL', 'Nature', 'IEEE Transactions on Image Processing', 'Elsevier'])
+  for (const v of ['NeurIPS', 'ICLR', 'TMLR', 'EMNLP', 'NAACL', 'Nature Communications', 'IEEE Transactions on Image Processing', 'Elsevier'])
     assert.ok(service.includes(v), `Service missing ${v}`);
 }));
 
@@ -69,13 +69,28 @@ test('Miscellanea leads with talks, awards and press, each linked to a source', 
   assert.match(patents.text, /12,718,151/);
   const service = misc.find(m => m.t === 'Service').text;
   assert.match(service, /Judge/);
-  assert.match(misc.find(m => m.t.startsWith('Teaching')).text, /Industry Mentorship Program/);
+  const mentor = await page.$$eval('#misc li', ls => ls.map(l => l.textContent).find(t => /Industry mentor/.test(t)));
+  assert.ok(mentor, 'the UMass mentorship is listed');
+  assert.doesNotMatch(mentor, /20\d\d|Spring|Fall|upcoming/i, 'kept vague: no dates until it starts');
 }));
 
 test('the talk and both wins are in the news, and IsoCompute still shows without a click', () => withPage({}, async (page, base) => {
   await page.goto(base + '/');
   const all = await page.$$eval('#news li', ls => ls.map(l => l.textContent));
   for (const re of [/^Mar 2026.*MIT/, /^Oct 2025.*WeaveHacks/, /^Apr 2023.*Seldonian/]) assert.ok(all.some(t => re.test(t)), String(re));
-  const shown = await page.$$eval('#news li', ls => ls.filter(l => l.checkVisibility()).map(l => l.textContent));
+  const shown = await page.$$eval('#news li', ls => { const box = ls[0].closest('.news-box').getBoundingClientRect();
+    return ls.filter(l => l.getBoundingClientRect().bottom <= box.bottom + 1).map(l => l.textContent); });
   assert.ok(shown.some(t => t.includes('IsoCompute')));
+}));
+
+test('Miscellanea lists one entry per line, years in their own column, no run-on separators', () => withPage({}, async (page, base) => {
+  await page.goto(base + '/');
+  const dds = await page.$$eval('#misc dd', ds => ds.map(d => ({ items: d.querySelectorAll(':scope > ul > li').length, text: d.textContent })));
+  assert.ok(dds.every(d => d.items >= 1), 'every category is a list');
+  assert.ok(dds.every(d => !/ · /.test(d.text)), 'no middots between entries');
+  const stacked = await page.$$eval('#misc ul', us => us.every(u => [...u.children].every((li, i, a) => i === 0 || li.getBoundingClientRect().top >= a[i - 1].getBoundingClientRect().bottom - 1)));
+  assert.ok(stacked, 'each entry starts on its own line');
+  const years = await page.$$eval('#misc li .y', ys => ys.map(y => [y.textContent.trim(), Math.round(y.getBoundingClientRect().right)]));
+  assert.ok(years.length >= 6 && years.every(([t]) => /^(Fall )?20\d\d$/.test(t)), JSON.stringify(years));
+  assert.equal(new Set(years.map(([, r]) => r)).size, 1, 'the years line up on the right');
 }));
