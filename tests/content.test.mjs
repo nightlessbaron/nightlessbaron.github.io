@@ -88,7 +88,7 @@ test('claims are scoped the way Varad stated them', () => withPage({}, async (pa
   assert.match(bio, /375B MoE/);
   assert.doesNotMatch(await page.textContent('body'), /400B/);
   assert.match(await page.textContent('#isocompute .s'), /I helped frame the problem and design the experiments, and stress-tested the findings at scale on larger models\./);
-  assert.match(await page.textContent('#k2-horizon .s'), /42\.6 on SWE-Bench Pro \(strict, no internet\)/, 'from the 375B model card');
+  assert.match(await page.textContent('#k2-horizon .s'), /70\.2 on Terminal-Bench 2\.1 and 42\.6 on SWE-Bench Pro \(strict, no internet\)/, 'from the 375B model card');
   assert.equal(await page.textContent('#rl360 a[href*="wandb.ai"]'), 'W&B (demo run)', 'the public run is a 32-task demo, not the big one');
 }));
 
