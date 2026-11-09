@@ -86,8 +86,7 @@ p { margin: 0 0 10px; }
 #tagline { font: italic 400 17px/1.5 var(--serif); text-align: center; margin: 4px 0 14px; }
 .links { text-align: center; margin-top: 12px; }
 .photo { position: relative; width: 200px; height: 200px; border-radius: 50%; overflow: hidden; flex-shrink: 0; }
-.photo img, .photo canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-.photo img { object-fit: cover; object-position: 50% 22%; }
+.photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 22%; }
 
 /* News */
 /* The news scrolls in its own box, newest first. Soft shadows at the top and bottom edges appear only
@@ -197,18 +196,6 @@ html.js #tagline:not(.ready) { visibility: hidden; animation: tagline-fallback 0
 #tagline .lp { top: 100%; color: var(--teal); }
 #tagline .cands > *::before, #tagline .lp::before { content: attr(data-t); }
 #tagline .tok:hover .lp { opacity: 1; }
-
-/* Photo diffusion (js/photo.js): the canvas, one pixel per cell scaled up crisp, covers the photo only
-   while a sample is being drawn. */
-.photo canvas { opacity: 0; transition: opacity .6s; image-rendering: pixelated; }
-.photo.noising canvas { opacity: 1; transition: none; }
-/* Until the script takes over, the photo starts as the same red block noise (a 6×6 image, scaled up
-   crisp) rather than flashing the finished picture. If the script never arrives, the noise lifts after a moment. */
-@media (prefers-reduced-motion: no-preference) {
-  html.js .photo:not(.ready)::after { content: ""; position: absolute; inset: 0; background: #5e0d1f url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAYAAAAGCAIAAABvrngfAAAAdklEQVR42mOYLKF+21N3mqRGj7iaF7fUDEkNhu8zUq446X7tiTpqrHvRXveAni6DLJvAhwJHoMJbHrpANhAx+HFLVwkrn7LQXS2rfcdLN41fgQHIAapP4VP4f7L/vq/ez6UFDJn8ijG8cp1iakuktZ4G6wFNBABdGSW4AtFQQQAAAABJRU5ErkJggg==") 0 0 / 100% 100%;
-    image-rendering: pixelated; animation: photo-fallback 0s 1.2s forwards; }
-}
-@keyframes photo-fallback { to { opacity: 0; } }
 
 /* IsoCompute "try it" figure (js/isofig.js). Series colours pass the colour-blind checks in both themes. */
 :root { --iso-easy: #d4500f; --iso-hard: #1772d0; }
