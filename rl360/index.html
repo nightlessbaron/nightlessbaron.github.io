@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f5f7f4" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f1516" media="(prefers-color-scheme: dark)">
+  <title>Where the gradient goes to die · Varad Pimpalkhute</title>
+  <meta name="description" content="What broke when we scaled RL360, the RL codebase behind IFM's K2 Horizon, and eight places where an agentic RL loop decides whether a step's gradient can be trusted, each linked to its code.">
+  <link rel="canonical" href="https://nightlessbaron.github.io/rl360/">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Where the gradient goes to die: notes from RL360">
+  <meta property="og:description" content="What broke when we scaled RL360, the RL codebase behind K2 Horizon, and eight details from the loop, each linked to its code.">
+  <meta property="og:url" content="https://nightlessbaron.github.io/rl360/">
+  <meta property="og:image" content="https://nightlessbaron.github.io/media/card.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="../favicon.ico" sizes="32x32">
+  <link rel="icon" href="../images/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../images/apple-touch-icon.png">
+  <link rel="preload" href="fonts/host-grotesk.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="../css/site.css">
+  <link rel="stylesheet" href="post.css">
+  <script type="module" src="../js/contours.js"></script>
+  <script type="module" src="figs.js"></script>
+  <script type="module" src="charts.js"></script>
+  <script defer src="https://cloud.umami.is/script.js" data-website-id="9cc9630e-58da-45b4-a135-88c8f41d3212" data-domains="nightlessbaron.github.io" data-do-not-track="true"></script>
+</head>
+<body>
+<main class="post">
+  <header class="post-head">
+    <p class="back"><a href="../">← Varad Pimpalkhute</a></p>
+    <p class="kicker">Notes from RL360</p>
+    <h1 class="page-title">Where the gradient goes to die</h1>
+    <p class="byline">Varad Pimpalkhute · November 2026 · <a href="https://github.com/ifm-ai/RL360">code</a> · <a href="https://wandb.ai/mbzuai-llm/rl360-public">public run</a></p>
+  </header>
+
+  <figure class="hero" id="fig-field" data-chart="field">
+    <div class="hero-plot">
+      <canvas tabindex="0" role="img" aria-label="A mosaic of 99 columns, one per training step, each holding that step's 256 attempts. Early columns are almost all orange, meaning the attempts reached the gradient. Later columns have about a quarter orange, with the rest in pale cells for groups dropped because every valid attempt passed. Step 70 shows a spike of masked attempts."></canvas>
+      <div class="hero-hi" hidden></div>
+    </div>
+    <div class="hero-axis" aria-hidden="true"><span>step 0</span><span class="mark70">step 70</span><span>step 98</span></div>
+    <ul class="key">
+      <li><i class="k-trained"></i>reached the gradient</li>
+      <li><i class="k-masked"></i>masked: infrastructure failure</li>
+      <li><i class="k-allpass"></i>group dropped: every valid attempt passed</li>
+      <li><i class="k-allfail"></i>group dropped: every valid attempt failed</li>
+      <li><i class="k-few"></i>group dropped: too few valid attempts</li>
+    </ul>
+    <p class="readout" aria-live="polite"></p>
+    <figcaption><b>Figure 1.</b> Every attempt in our public demo run: K2-Horizon-7B overfitting 32 tasks for 99 steps. Each column is one step's 256 attempts, stacked by what happened to them. A group with no disagreement has nothing to train on, so as the policy gets better, whole groups that passed every attempt drop out. Hover over a step to read it, or focus the chart and use the arrow keys.</figcaption>
+  </figure>
+
+  <div class="post-body">
+    <nav class="rail" aria-label="Contents">
+      <details>
+        <summary>Contents</summary>
+        <ol>
+          <li><a href="#what">What RL360 is</a></li>
+          <li class="group"><a href="#broke">What broke at scale</a>
+            <ol>
+              <li><a href="#push-story">The weight push</a></li>
+              <li><a href="#r3-story">R3 held up every step</a></li>
+              <li><a href="#sandbox-story">Sandboxes</a></li>
+            </ol></li>
+          <li class="group"><a href="#loop">From token to gradient</a>
+            <ol>
+              <li><a href="#d1"><span>1</span>Tokens in, tokens out</a></li>
+              <li><a href="#d2"><span>2</span>One sample per trajectory</a></li>
+              <li><a href="#d3"><span>3</span>Round-robin</a></li>
+              <li><a href="#d4"><span>4</span>Two 3,600 s clocks</a></li>
+              <li><a href="#d5"><span>5</span>Generate while training</a></li>
+              <li><a href="#d6"><span>6</span>Infrastructure or policy</a></li>
+              <li><a href="#d7"><span>7</span>GRPO's baseline</a></li>
+              <li><a href="#d8"><span>8</span>Log before the filter</a></li>
+            </ol></li>
+          <li class="group"><a href="#step70">Step 70</a></li>
+          <li class="group"><a href="#conclusion">Conclusion</a></li>
+          <li><a href="#sources">Sources</a></li>
+        </ol>
+      </details>
+    </nav>
+
+    <article>
+      <p class="lede">One replaced inference engine added ten minutes to every weight push after it, and the only trace was a warning line in 1.1 GB of logs. At 8,192 sandboxes, the next training step took 25 minutes to start while one process collected routing data. Thousands of pods asked the image registry for their images at once, failed, and retried.</p>
+
+      <p>RL360 is the RL codebase we used to post-train IFM's K2 Horizon models. Most of it is Miles, Megatron-LM, SGLang, SMG and Harbor; the rest is the code we had to write to make them train coding agents together. I lead RL360 and led coding-agent post-training for K2 Horizon. This post starts with what broke when we scaled it, then goes through eight places where that code decides whether a step's gradient can be trusted.</p>
+
+      <p class="jump"><span>The three stories</span> <a href="#push-story">A replaced engine slowed every weight push</a> <a href="#r3-story">R3 held up every step</a> <a href="#sandbox-story">Sandboxes were the death of us</a></p>
+
+      <h2 id="what">What RL360 is</h2>
+
+      <p>A training step goes like this:</p>
+      <ol class="steps">
+        <li>Miles samples a batch of task groups and opens a session on a session server for each attempt.</li>
+        <li>The agent function POSTs the task and the session's OpenAI-compatible URL to the Harbor server's <code>/run</code>. Harbor starts a sandbox (Daytona or Docker), runs the agent, then the task's verifier, and returns the reward and an exit status.</li>
+        <li>Every model call from the agent goes through the session server, which records token IDs and log-probs, and then through SMG to an SGLang engine.</li>
+        <li>Miles collects one merged sample per session, attaches Harbor's reward, and filters groups.</li>
+        <li>Megatron trains on what is left and pushes weights to SGLang.</li>
+      </ol>
+
+      <figure class="fig" id="fig-arch">
+        <div class="stage video">
+          <video muted playsinline preload="none" poster="media/arch-poster.webp" width="960" height="540" aria-label="Animation of the RL360 architecture: task prompts and sandboxes, model calls through session servers to SGLang engines, trajectories back to Miles, then Megatron training and the weight broadcast.">
+            <source src="../media/rl360.webm" type="video/webm"><source src="../media/rl360.mp4" type="video/mp4">
+          </video>
+        </div>
+        <figcaption><b>Figure 2.</b> The RL360 architecture, one flow at a time: sandboxes and model calls, trajectories back to Miles, then training and the weight broadcast. Orange is training, teal is inference, black is agents and sandboxes.</figcaption>
+      </figure>
+
+      <h2 id="broke">What broke at scale</h2>
+      <p class="lead">The public run trains on 256 attempts per step. Production ran up to 8,192 sandboxes at once. Routing data for replay (R3) and the sandboxes themselves cost us the most, but the weight push goes first, because it shows how quietly this kind of thing happens.</p>
+      <p>The production numbers below come from one recent 375B run: 25 hours and 17 training steps on a mix of coding and other agent tasks. This is what a step of it looked like, with the R3 and sandbox fixes already in:</p>
+
+      <figure class="fig narrow" id="fig-step">
+        <div class="seg-chart">
+          <p class="seg-title">One 84-minute step, median of 16</p>
+          <div class="seg tall" role="img" aria-label="Of an 84 minute step, the trainer computes for 62 minutes, which is 74 percent, and waits for rollouts for 22 minutes, which is 26 percent.">
+            <span class="s-orange" style="flex-basis:74%">62 min computing</span><span class="s-pale" style="flex-basis:26%">22 min waiting</span>
+          </div>
+        </div>
+        <dl class="spec">
+          <div><dt>4,096</dt><dd>trajectories trained (512 tasks × 8)</dd></div>
+          <div><dt>226M</dt><dd>tokens trained, about 55K per trajectory</dd></div>
+          <div><dt>54 s</dt><dd>weight push to the engines, then about 10 min (<a href="#push-story">why</a>)</dd></div>
+          <div><dt>2 s</dt><dd>R3 preparation on the trainer</dd></div>
+          <div><dt>108 TFLOP/s</dt><dd>per trainer GPU: its own FLOP count, attention included, about 11% of an H200's dense BF16 peak</dd></div>
+          <div><dt>92%</dt><dd>prefix-cache hit rate</dd></div>
+        </dl>
+        <figcaption><b>Figure 3.</b> One step of the 375B run. The trainer computes for three-quarters of the step and waits on rollouts for the rest.</figcaption>
+      </figure>
+
+      <h3 id="push-story">A replaced engine slowed every weight push</h3>
+      <p class="lead">The weight push took about a minute for the first 13 steps of the 375B run and 9 to 11 minutes for the last four.</p>
+
+      <figure class="fig" id="fig-push" data-chart="push">
+        <div class="stage plot"></div>
+        <figcaption><b>Figure 4.</b> Every weight push in the 375B run, then the five pushes of a later run right after a large engine swap, once the fix was in.</figcaption>
+      </figure>
+
+      <p>Generation stops during a push, so the engines sat idle for about 11% of each of those steps. GPU utilization, memory, temperatures and the engine count looked the same before and after. The push was doing more work: each engine received 41 update calls per push before the change and 1,432 after.</p>
+      <p>Both counts come from how the weights travel. The broadcast sends 512 MB at a time, and 375B at BF16 is about 750 GB, nearly all of it experts. Our internal branch broadcasts only the non-expert weights, about 20 GB in 40 rounds. An expert lives on one GPU of each engine, so the trainer ranks holding experts send them straight to those GPUs, which takes one more call per engine and about 10 seconds.</p>
+      <p>That plan is built for one fixed set of engines. When the set changed, the code retired the plan for the rest of the job and went back to the path the public release's recipe uses: gather the experts and broadcast all of them to every GPU, 512 MB at a time.</p>
+      <div class="table-wrap">
+        <table class="num">
+          <thead><tr><th>One weight push</th><th>Direct path</th><th>Broadcast</th></tr></thead>
+          <tbody>
+            <tr><td>Update calls per engine</td><td>41</td><td>1,432</td></tr>
+            <tr><td>Sending the experts</td><td>about 10 s</td><td>about 9 min</td></tr>
+            <tr><td>Generation paused</td><td>43 s</td><td>9 to 10 min</td></tr>
+            <tr><td>Whole push</td><td>54 s</td><td>9 to 11 min</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>The swap that did it was the uneventful one. An engine died overnight, and its replacement joined at the next push. That push was rejected and retried, by which time a second engine was down, and the retry path throws the plan away and builds a new one, so the direct path survived.</p>
+      <p>One step later the second engine's replacement joined without an error, and that is the case that retired the plan. The log records it as one warning line in 1.1 GB of output, and no metric says which path a push took.</p>
+      <p>The job ended on the push after those four, in the same code. Another replacement joined, a dead engine never confirmed its cleanup, and the code refused to retry because it couldn't confirm the old receivers were gone.</p>
+      <p>The fix was in before the next long run: a changed engine set now retires the old plan and builds a new one. A later run hit it after a large engine swap, and the next four pushes took 117, 45, 39 and 36 seconds. The release has no direct path for experts, and its recipe uses the broadcast, so at 375B every push takes the long way.</p>
+
+      <h3 id="r3-story">R3 held up every step</h3>
+      <p class="lead">At 8,192 trajectories, the next step took forever to start. After the last rollout of a step finished, collecting its R3 routing data took about another 25 minutes before training could begin.</p>
+      <p>All of it went through one rollout manager.</p>
+      <p><a href="https://arxiv.org/abs/2510.11370">Rollout routing replay</a> (R3) ships every token's expert choices from inference to training. <a href="https://huggingface.co/IFM/K2-Horizon-375B-A23B/blob/main/config.json">K2-Horizon-375B</a> has 61 layers with 8 experts per token (the first three layers are dense, but the format keeps a row for every layer), stored as int32: 1,952 bytes a token, 2.6 KB once base64-encoded into JSON. A 58K-token trajectory, the public run's typical length, carries 151 MB. Every response carries routing for the whole conversation so far, old tokens included.</p>
+      <p>The bytes hurt less than the CPU it takes to serialize and parse them. The session server returns <a href="https://github.com/ifm-ai/RL360/blob/9a9522a/components/miles/miles/rollout/session/sessions.py#L425-L490"><code>/merged</code></a> through FastAPI's default response, which serializes with the standard-library <code>json</code>, and the rollout manager parses it with the standard-library <code>json</code> that <code>httpx</code> uses. The alternative on both ends is <code>orjson</code>, which RL360 already pins.</p>
+
+      <figure class="fig narrow" id="fig-json">
+        <div class="bars">
+          <p class="bars-group">Session server: serialize</p>
+          <div class="bar"><span class="bar-l">stdlib <code>json.dumps</code></span><span class="bar-t"><i class="b-muted" style="width:100%"></i></span><span class="bar-v">0.53 s <small>288 MB/s</small></span></div>
+          <div class="bar"><span class="bar-l"><code>orjson.dumps</code></span><span class="bar-t"><i class="b-teal" style="width:5.7%"></i></span><span class="bar-v">0.03 s <small>5.8 GB/s</small></span></div>
+          <p class="bars-group">Rollout manager: parse</p>
+          <div class="bar"><span class="bar-l">stdlib <code>json.loads</code></span><span class="bar-t"><i class="b-muted" style="width:41.5%"></i></span><span class="bar-v">0.22 s <small>696 MB/s</small></span></div>
+          <div class="bar"><span class="bar-l"><code>orjson.loads</code></span><span class="bar-t"><i class="b-teal" style="width:20.8%"></i></span><span class="bar-v">0.11 s <small>1.4 GB/s</small></span></div>
+          <p class="bars-group">Size on the wire</p>
+          <div class="bar"><span class="bar-l">merged sample as JSON</span><span class="bar-t"><i class="b-muted" style="width:100%"></i></span><span class="bar-v">152 MB <small>151 MB is routing</small></span></div>
+          <div class="bar"><span class="bar-l">same IDs, one byte each</span><span class="bar-t"><i class="b-teal" style="width:18.4%"></i></span><span class="bar-v">28 MB <small>binary</small></span></div>
+        </div>
+        <figcaption><b>Figure 5.</b> One 58K-token trajectory's merged sample: token IDs, log-probs, loss mask and routing. Timed on one core of an AMD EPYC 7763, median of 10 runs after 2 warm-ups (<a href="r3_bench.py">script</a>).</figcaption>
+      </figure>
+
+      <p>Parsing alone is about the right size. At 0.22 s each, one process working through 8,192 samples of that length takes 30 minutes, close to the 25 we saw.</p>
+      <p>That is a scale check, not a profile: we never split those minutes between parsing, serialization and the network, and real trajectories vary in length. But it points at the design. One event loop collecting every trajectory at the step boundary doesn't work at this scale.</p>
+      <p>The release changes the collection. It runs 256 session servers as Ray actors spread across nodes (the default is one), <a href="https://github.com/ifm-ai/RL360/blob/9a9522a/components/miles/miles/rollout/session/sessions.py#L425-L470">merges each trajectory on the server that holds it</a>, and sends the rollout manager one sample with only the last turn's routing, which already covers every token. That spreads the serialization 256 ways and keeps the earlier turns' copies off the rollout manager.</p>
+
+      <p>In the 375B run, preparing R3 takes the trainer 2 seconds a step. The trainer still waits about 22 minutes of each 84-minute step, but that wait looks like generation. In a typical two-minute window 0.05% of the rollout engines were idle, and at any moment about 70% of the trajectories in flight were waiting on the model.</p>
+      <p>The largest cost left is per turn. Every turn's response still carries routing for the whole conversation from SGLang through SMG to the session server, which parses it. Then it goes on to the agent, which never uses it: the agent function <a href="https://github.com/ifm-ai/RL360/blob/9a9522a/src/agent360/harbor/miles/swe_agent_function.py#L351-L357">asks for routing on every call</a>, and the session server <a href="https://github.com/ifm-ai/RL360/blob/9a9522a/components/miles/miles/rollout/session/sessions.py#L662-L763">hands back the engine's body as is</a>. On the public run's shape, 61 turns whose prompts add up to 2.6M tokens, that is about 6.8 GB of routing per trajectory, parsed twice.</p>
+
+      <p>Stripping routing from the response before it reaches the agent removes one of the two parses. Upstream Miles has since added <a href="https://github.com/radixark/miles/blob/7fc1f62/miles/rollout/session/core.py#L262-L279">a mode</a> that asks SGLang only for the rows a session doesn't already hold, and Periodic <a href="https://periodic.com/news/ai-infrastructure-at-periodic">describes the same idea</a> as delta router replay.</p>
+      <p>One open question: the routing we keep for a token comes from whichever forward last wrote its KV slot. With a cache hit that is often the decode that produced the token; after a cache miss it is a later prefill, which can route differently. The release doesn't check how often.</p>
+
+      <h3 id="sandbox-story">Sandboxes were the death of us</h3>
+      <p class="lead">Three changes did most of the work.</p>
+      <aside class="side">One event loop serving every trial saturated, missed heartbeats and crashed, so the Harbor server is now a thin router in front of worker processes, each with its own loop.</aside>
+      <p><b>Waves.</b> Our first launcher started every sandbox at the start of a batch, so thousands of pods asked the image registry for their images at once; pulls conflicted, pods failed, and every failed pod came back as a retry that pulled again. Admitting rollouts in timed waves (<code>--rolling-start-size</code>) keeps pulls under what the registry can serve, and engines get work as soon as the first wave lands.</p>
+      <p><b>Reservations.</b> Sandboxes also share nodes, and one heavy build could take the CPU and memory its neighbours needed, slowing them down or getting one of them OOM-killed. Reserving resources per pod keeps each sandbox to its share.</p>
+      <aside class="side">The reservations and the pinning live in our cluster setup; the released code doesn't include them.</aside>
+      <p><b>Pinning.</b> Sandboxes that landed on arbitrary nodes kept pulling their images cold, so we pinned groups of images to specific nodes, and most starts now hit a warm local cache.</p>
+      <figure class="fig tabbed" id="fig-sandbox" data-label="Launch-thread clips">
+        <div class="panel" id="clip-waves" data-tab="Waves">
+          <div class="stage video">
+            <video muted playsinline preload="none" poster="media/stagger-poster.webp" width="1200" height="676" aria-label="Animation: on the left every sandbox pulls its image at once, pulls far exceed registry capacity and many pods fail; on the right sandboxes launch in waves, pulls stay under capacity and every sandbox is ready sooner.">
+            <source src="media/stagger.webm" type="video/webm"><source src="media/stagger.mp4" type="video/mp4">
+          </video>
+          </div>
+        </div>
+        <div class="panel" id="clip-reservations" data-tab="Reservations">
+          <div class="stage video">
+            <video muted playsinline preload="none" poster="media/isolation-poster.webp" width="1200" height="676" aria-label="Animation: without reservations a heavy build slows every pod on the node and one is OOM-killed; with per-pod reservations neighbours keep their share and finish sooner.">
+            <source src="media/isolation.webm" type="video/webm"><source src="media/isolation.mp4" type="video/mp4">
+          </video>
+          </div>
+        </div>
+        <div class="panel" id="clip-pinning" data-tab="Pinning">
+          <div class="stage video">
+            <video muted playsinline preload="none" poster="media/affinity-poster.webp" width="1200" height="676" aria-label="Animation: placed on any node, most sandbox starts pull images cold and queue; pinned by image group, most starts hit a warm cache and every sandbox runs much sooner.">
+            <source src="media/affinity.webm" type="video/webm"><source src="media/affinity.mp4" type="video/mp4">
+          </video>
+          </div>
+        </div>
+        <div class="panel" id="clip-gap" data-tab="Batch gap">
+          <div class="stage video">
+            <video muted playsinline preload="none" poster="media/async-poster.webp" width="1200" height="676" aria-label="Animation: two timelines on a 4-hour axis. Before, long sandbox creation and R3 transfer leave rollout GPUs idle between batches; after spreading the servers and slimming R3, the gaps shrink and one more batch fits in four hours.">
+            <source src="media/async.webm" type="video/webm"><source src="media/async.mp4" type="video/mp4">
+          </video>
+          </div>
+        </div>
+        <figcaption><b>Figure 6.</b> From our launch thread. <span data-for="clip-waves">8,192 sandboxes launched all at once versus in waves on one clock.</span> <span data-for="clip-reservations">Six sandboxes on one node while one starts a heavy build, sharing the node on the left and with per-pod reservations on the right.</span> <span data-for="clip-pinning">The same 64 sandbox starts on 4 nodes, placed anywhere on the left and pinned by image group on the right.</span> <span data-for="clip-gap">The gap between batches before and after we spread the Harbor and session servers across nodes and slimmed R3. Training overlaps the next batch in both.</span></figcaption>
+      </figure>
+
+      <p>At any moment of the 25-hour 375B run, about 0.5% of the trajectories in flight were waiting on sandbox setup. The console log agrees:</p>
+
+      <figure class="fig narrow" id="fig-ready" data-chart="ready">
+        <div class="stage plot"></div>
+        <figcaption><b>Figure 7.</b> Time for a sandbox to get ready, across the 51,227 trajectories that got one and logged their phases. Log scale.</figcaption>
+      </figure>
+
+      <p>The biggest infrastructure loss had moved to the inference engines, and those losses came in bursts, with 1,535 in one 83-minute window.</p>
+
+      <figure class="fig narrow" id="fig-losses">
+        <div class="bars">
+          <div class="bar"><span class="bar-l">no engine available</span><span class="bar-t"><i class="b-fail" style="width:100%"></i></span><span class="bar-v">3.6%</span></div>
+          <div class="bar"><span class="bar-l">verifier infrastructure error</span><span class="bar-t"><i class="b-fail" style="width:32.8%"></i></span><span class="bar-v">1.2%</span></div>
+          <div class="bar"><span class="bar-l">never got a sandbox</span><span class="bar-t"><i class="b-fail" style="width:15%"></i></span><span class="bar-v">0.54%</span></div>
+          <div class="bar"><span class="bar-l">lost its sandbox partway</span><span class="bar-t"><i class="b-fail" style="width:9.4%"></i></span><span class="bar-v">0.34%</span></div>
+        </div>
+        <figcaption><b>Figure 8.</b> Finished trajectories lost to infrastructure over the 375B run, by cause.</figcaption>
+      </figure>
+
+      <h2 id="loop">From token to gradient</h2>
+      <p>The rest is slower going: eight details from the loop itself, with numbers from the public run.</p>
+
+      <h3 id="d1"><span class="n">1</span>Tokens in, tokens out</h3>
+      <p class="lead">The agent talks to <code>/sessions/{id}/v1</code> like any OpenAI client and never sees a token ID.</p>
+      <p>The <a href="https://github.com/ifm-ai/RL360/blob/9a9522a/components/miles/miles/rollout/session/sessions.py#L509-L605">session server</a> keeps the token IDs of every turn and sends the next request to SGLang as <code>input_ids</code>: the stored IDs plus the new tool or user message, tokenized on its own. The trainer gets exactly the tokens the sampler produced. The flags that make this work are assigned outright, so no agent config can switch them off:</p>
+<pre tabindex="0" data-file="sessions.py" data-href="https://github.com/ifm-ai/RL360/blob/9a9522a/components/miles/miles/rollout/session/sessions.py#L509-L605"><code>request_body["logprobs"] = True
+request_body["return_prompt_token_ids"] = True
+request_body["return_meta_info"] = True
+request_body["return_sampling_mask"] = session.capture_sampling_mask
+if getattr(args, "use_rollout_routing_replay", False):
+    request_body["return_routed_experts"] = True
+# Must be False so stop tokens are trimmed from output: otherwise the
+# agent sees stop-token text in content, and the accumulated checkpoint
+# would duplicate structural delimiters that the chat template also emits.
+request_body["no_stop_trim"] = False</code></pre>
+      <p>This only works if the chat template is append-only, meaning a message renders the same way whatever follows it. Qwen3's template isn't: it branches on <code>loop.last</code> and expects a newline after <code>&lt;|im_end|&gt;</code> that the model never generates, so Miles swaps in a fixed template and patches the boundary.</p>
+      <p>We built the <a href="https://github.com/ifm-ai/RL360/blob/9a9522a/components/miles/miles/utils/chat_template_utils/tito_tokenizer.py#L347-L398">K2V3 template</a> so the problem can't happen: it emits nothing between <code>&lt;|ifm|im_end|&gt;</code> and the next <code>&lt;|ifm|im_start|&gt;</code>, and the stored tokens already equal the canonical render.</p>
+
+      <h3 id="d2"><span class="n">2</span>One sample per trajectory</h3>
+      <p class="lead">When a rollout ends, its turns are <a href="https://github.com/ifm-ai/RL360/blob/9a9522a/components/miles/miles/rollout/session/sessions.py#L246-L404">merged into one training sample</a>.</p>
+      <p>The loss mask is 1 on tokens the policy sampled and 0 on the prompt, tool output and anything else appended. Each turn's rollout log-probs and weight version come along.</p>
+      <p>If a turn stopped early (<code>finish_reason</code> is <code>length</code>), every turn after it is dropped, because those turns were conditioned on a reply that was cut off. The cut turn itself stays, and the sample still carries the verifier's reward for the whole trial, which the dropped turns helped earn.</p>
+
+      <figure class="fig" id="fig-traj" data-fig="traj">
+        <div class="stage"></div>
+        <ul class="key">
+          <li><i class="k-prompt"></i>prompt</li>
+          <li><i class="k-gen"></i>sampled by the policy: loss mask 1</li>
+          <li><i class="k-tool"></i>tool output: loss mask 0</li>
+          <li><i class="k-drop"></i>dropped</li>
+        </ul>
+        <figcaption><b>Figure 9.</b> One trajectory becomes one training sample. Each square is a token. Turns are appended as token IDs, everything after the first truncated turn is dropped, and the loss falls only on tokens the policy sampled.</figcaption>
+      </figure>
+
+      <h3 id="d3"><span class="n">3</span>Round-robin throws the cache away</h3>
+      <p class="lead">Each request carries <code>X-SMG-Routing-Key: &lt;session_id&gt;</code>, which SMG's <code>manual</code> policy uses to send a session back to the engine holding its KV cache.</p>
+      <p>The <a href="https://github.com/ifm-ai/RL360/blob/9a9522a/recipes/coding-overfit32.sbatch#L235-L236">release recipe</a> uses <code>round_robin</code>, which ignores the key, so a conversation can land on a different engine every turn and prefill from scratch.</p>
+      <p>The public run shows what that costs. A trajectory averaged 61 turns, and because every turn resends the conversation so far, its prompts added up to 2.6M tokens. The prefix-cache hit rate was 20%, so about 2.1M of those tokens were prefilled again.</p>
+
+      <figure class="fig narrow" id="fig-prefill">
+        <div class="seg-chart">
+          <p class="seg-title">Round-robin, as the public run measured it</p>
+          <div class="seg" role="img" aria-label="Of 2.6 million prompt tokens per trajectory, about 2.1 million were prefilled again and 20 percent came from the cache.">
+            <span class="s-orange" style="flex-basis:80%">2.1M prefilled</span><span class="s-pale" style="flex-basis:20%">20% cached</span>
+          </div>
+          <p class="seg-title">Every turn back to the engine holding its cache, by our estimate</p>
+          <div class="seg" role="img" aria-label="If every turn went back to the engine holding its cache, about 60 thousand tokens would be prefilled and the hit rate would be near 98 percent.">
+            <span class="s-orange" style="flex-basis:2%"></span><span class="s-pale" style="flex-basis:98%">near 98% cached, about 60K prefilled</span>
+          </div>
+        </div>
+        <figcaption><b>Figure 10.</b> The 2.6M prompt tokens of one average trajectory, to scale.</figcaption>
+      </figure>
+
+      <h3 id="d4"><span class="n">4</span>Two 3,600-second clocks</h3>
+      <p class="lead">The client wraps the whole <code>/run</code> call in <code>AGENT_TIMEOUT_SECS</code> (3,600 s), and Harbor <a href="https://github.com/ifm-ai/RL360/blob/9a9522a/src/agent360/harbor/miles/harbor_server.py#L1124-L1141">pins the agent's own budget</a> at a flat 3,600 s as well.</p>
+      <p>The client's deadline also has to cover queueing, sandbox setup and the verifier, so an agent that uses its whole budget hits the client deadline first, and its sample comes back with no reward, which gets scored as 0 (<a href="#d6">detail 6</a>).</p>
+
+      <figure class="fig" id="fig-deadline" data-chart="deadline">
+        <div class="stage plot"></div>
+        <figcaption><b>Figure 11.</b> How long each of the public run's 99 rollout phases lasted. 18 of them stopped at 3,607 to 3,611 seconds, each one waiting on a trajectory until the client's deadline cut it off.</figcaption>
+      </figure>
+
+      <h3 id="d5"><span class="n">5</span>Generate the next batch while training on this one</h3>
+      <p class="lead"><a href="https://github.com/ifm-ai/RL360/blob/9a9522a/components/miles/train_async.py#L38-L74"><code>train_async.py</code></a> starts generating batch <i>k</i>+1 before training on batch <i>k</i>, then waits for that generation to finish before pushing new weights, so weights never change mid-rollout.</p>
+<pre tabindex="0" data-file="train_async.py" data-href="https://github.com/ifm-ai/RL360/blob/9a9522a/components/miles/train_async.py#L38-L74"><code>if (rollout_id + 1) % args.update_weights_interval == 0:
+    # sync generate before update weights to prevent update weight in the middle of generation
+    rollout_data_curr_ref = (await x) if (x := rollout_data_next_future) is not None else None
+    rollout_data_next_future = None
+    await actor_model.update_weights()</code></pre>
+      <p>Every update therefore trains on data from the policy one version back. With <code>--keep-old-actor</code>, Megatron keeps a <a href="https://github.com/ifm-ai/RL360/blob/9a9522a/components/miles/miles/backends/megatron_utils/actor.py#L1072-L1081">queue of weight copies</a>, so the PPO ratio's "old" policy is exactly the one the engines sampled with, and the PPO ratio becomes a staleness ratio. Truncated importance sampling (<a href="https://fengyao.notion.site/off-policy-rl">TIS</a>) on top, capped at 2, only has to absorb the numerical gap between SGLang and Megatron.</p>
+      <p>On the public run that gap was small: the mean per-token |Δ log p| between trainer and sampler stayed between 0.015 and 0.018 for all 99 steps, the TIS cap touched about 2 tokens in a million, and one step of staleness clipped 0.02% of tokens (median <code>pg_clipfrac</code>). That's a dense 7B; the MoE case, where the gap is known to be worse, isn't in the public run.</p>
+
+      <figure class="fig" id="fig-async" data-fig="async">
+        <div class="stage"></div>
+        <ul class="key">
+          <li><i class="k-gen"></i>rollouts on SGLang</li>
+          <li><i class="k-train"></i>training on Megatron</li>
+          <li><i class="k-push"></i>weight push</li>
+          <li><i class="k-idle"></i>waiting</li>
+        </ul>
+        <figcaption><b>Figure 12.</b> Batch <i>k</i>+1 generates while the trainer updates on batch <i>k</i>. The figure shows the engines stopping only for the weight push; in practice they also go idle while a batch's slowest trajectories finish, because the push waits for them. The last step redraws the timeline to scale with the public run's medians.</figcaption>
+      </figure>
+
+      <p>On the public run the overlap saved about 81 s of a 40-minute step. Training took 81 s and the weight push 3.8 s, so the trainer sat idle about 97% of the time. The rollouts themselves were mostly tail: the mean trajectory took 10.4 minutes, and the step waited another half hour for the slowest ones.</p>
+
+      <h3 id="d6"><span class="n">6</span>Telling infrastructure failures from policy failures</h3>
+      <p class="lead">A sandbox that times out, a verifier that crashes or a session that vanishes says nothing about the policy, and at 8,192 sandboxes these are routine.</p>
+      <p>RL360 marks a sample as an infrastructure failure if it was aborted, if its Harbor exit status is <a href="https://github.com/ifm-ai/RL360/blob/9a9522a/components/miles/miles/rollout/filter_hub/dynamic_sampling_filters.py#L19-L38">on a list</a> (<code>AgentTimeout</code>, <code>EnvStartTimeout</code>, <code>VerifierTimeout</code>, <code>NotFoundError</code> and others), if an LLM judge call failed, or if it has no reward at all. Those samples get a zero loss mask, and an empty aborted attempt borrows a valid sequence only so the tensors line up. A group trains only if at least two valid attempts disagree:</p>
+<pre tabindex="0" data-file="dynamic_sampling_filters.py" data-href="https://github.com/ifm-ai/RL360/blob/9a9522a/components/miles/miles/rollout/filter_hub/dynamic_sampling_filters.py#L19-L38"><code>def check_valid_reward_nonzero_std(args, samples: list[Sample], **kwargs) -&gt; DynamicFilterOutput:
+    """Keep groups with varying valid rewards despite individual infrastructure failures."""
+    valid_samples = [sample for sample in _flatten_samples(samples) if not is_infra_failure(sample)]
+    if len(valid_samples) &lt; 2:
+        return DynamicFilterOutput(keep=False, reason="insufficient_valid_rewards")
+    return check_reward_nonzero_std(args, valid_samples, **kwargs)</code></pre>
+
+      <figure class="fig" id="fig-fail" data-fig="fail">
+        <div class="stage"></div>
+        <ul class="key">
+          <li><i class="k-pass"></i>passed</li>
+          <li><i class="k-fail"></i>failed</li>
+          <li><i class="k-crash"></i>infrastructure failure</li>
+        </ul>
+        <figcaption><b>Figure 13.</b> Six tasks, eight attempts each. Recognized crashes are masked, groups whose valid attempts all agree are dropped, and the step trains on what's left. The last step shows a crash scored as 0, which is what still happens to failures the list doesn't name.</figcaption>
+      </figure>
+
+      <p>The weak spot is that it's a list. A failure the list doesn't name still scores 0: an unexpected exception inside Harbor <a href="https://github.com/ifm-ai/RL360/blob/9a9522a/src/agent360/harbor/miles/harbor_server.py#L1406-L1462">comes back as reward 0</a> with exit status <code>Error: RuntimeError</code>, and a client-side timeout returns nothing, which the reward function turns into 0 before the filter runs. The safer default is to trust a reward only if a verifier wrote it.</p>
+      <p>Counting <code>AgentTimeout</code> as infrastructure is also a judgment call, since running out the clock is often the policy's fault. <a href="https://together.ai/blog/deepswe">DeepSWE</a> masks timed-out trajectories too, and <a href="https://arxiv.org/abs/2602.03411">SWE-Master</a> reports that the same masking made its reward degrade until training collapsed.</p>
+
+      <h3 id="d7"><span class="n">7</span>GRPO, and what filtering does to its baseline</h3>
+<pre tabindex="0" data-file="the release recipe"><code>--advantage-estimator grpo --disable-grpo-std-normalization --use-tis
+--use-kl-loss --kl-loss-coef 0 --kl-loss-type low_var_kl
+--entropy-coef 0 --eps-clip 0.2 --eps-clip-high 0.28</code></pre>
+      <p class="lead">Filtering changes the batch size every step.</p>
+      <p><code>--use-dynamic-global-batch-size</code> sets the global batch to the surviving sample count, rounded down to a multiple of the data-parallel size, so each rollout is exactly one optimizer step.</p>
+      <p>The varying size has a side effect if you reuse the recipe: the code <a href="https://github.com/ifm-ai/RL360/blob/9a9522a/components/miles/miles/ray/rollout.py#L759-L766">reshapes rewards into groups</a> only when the batch is full, so on a step where the filter dropped a group, the GRPO baseline is the mean over the whole batch. On the public run that was 96 of 99 steps.</p>
+      <p>That mean also counts masked samples, at a reward of 0 (<a href="#step70">step 70</a> shows what that does). The 375B run doesn't hit the fallback, but its group baselines count masked samples at 0 too.</p>
+      <p><a href="https://arxiv.org/abs/2503.20783">Dr. GRPO</a> is only half applied. Per-group std normalization is off, but the loss is still a mean over each sample, which is the length bias that paper removes with a constant normalizer.</p>
+
+      <h3 id="d8"><span class="n">8</span>Log the reward before the filter</h3>
+      <p class="lead">The filter drops all-pass and all-fail groups, so the trained batch's mean reward moves when easy groups disappear, even if the policy hasn't changed.</p>
+      <p>RL360 <a href="https://github.com/ifm-ai/RL360/blob/9a9522a/src/agent360/harbor/miles/generate.py#L76-L144">stashes every group before filtering</a> and logs <code>reward/unfiltered_mean</code> next to <code>reward/kept_mean</code>, along with per-domain means and masked and trained sample counts.</p>
+
+      <figure class="fig" id="fig-reward" data-chart="reward">
+        <div class="stage plot"></div>
+        <ul class="key">
+          <li><i class="k-line-a"></i>unfiltered mean: every group, before the filter</li>
+          <li><i class="k-line-b"></i>kept mean: the groups that trained</li>
+        </ul>
+        <figcaption><b>Figure 14.</b> The same policy on the same 99 steps of the public run. The unfiltered mean went from 0.37 to 0.90. The kept mean levelled off around 0.75 from about step 40, while most of the groups being dropped were ones that passed every attempt. Reward isn't a pass rate: the recipe takes 0.3 off otherwise successful attempts that made any tool-call format error.</figcaption>
+      </figure>
+
+      <p>Plot only the kept mean and the policy looks like it stopped learning at step 40.</p>
+      <h2 id="step70">Step 70</h2>
+      <p class="lead">Step 70 is the pink spike in Figure 1 and the dip in Figure 14: a burst of infrastructure failures, gone by the next step. One step of that reaches further than the samples it loses.</p>
+      <p>Of the 56 samples the filter kept, 23 were masked. Three numbers then moved on their own:</p>
+      <dl class="rows">
+        <div><dt>× 0.59</dt><dd>on every gradient. The <a href="https://github.com/ifm-ai/RL360/blob/9a9522a/components/miles/miles/backends/training_utils/cp_utils.py#L125-L133">loss</a> is a mean over kept samples, and masked ones count in the denominator at zero. Adam absorbs part of that, but the step's batch still counts for less than its neighbours, for a reason that has nothing to do with the data.</dd></div>
+        <div><dt>+ 0.31</dt><dd>on the advantage of every trained sample, compared with a baseline over valid samples. The whole-batch baseline (<a href="#d7">detail 7</a>) came to 0.44 against a kept mean of 0.75.</dd></div>
+        <div><dt>0.49</dt><dd>logged as mean reward, down from 0.89 and back at 0.79 the next step, while the kept mean held at 0.75. The unfiltered mean scores every infrastructure failure as 0, so that step's failures were averaged in as wrong answers.</dd></div>
+      </dl>
+      <p>Other logged values take the same hit. Each is a mean over samples with that denominator, so <code>train/tis</code>, which should sit near 1, equals 1 − masked/kept on every one of the 99 steps, and the logged |Δ log p| dips to 0.009 on this one (the range in <a href="#d5">detail 5</a> is corrected for it). What we should have logged is the mean over valid samples, with the infrastructure failure rate next to it.</p>
+
+      <h2 id="conclusion">Conclusion</h2>
+      <p class="lead">Very little of this post is about the objective. Most of it is bookkeeping: making sure the trainer sees exactly the tokens the sampler produced, keeping broken sandboxes out of the loss, and knowing which reward you are looking at.</p>
+      <p>If I were starting over, I would get three things right before anything else:</p>
+      <ul class="three">
+        <li><b>Tokens in, tokens out,</b> with a chat template that only appends (details <a href="#d1">1</a> and <a href="#d2">2</a>), because everything downstream assumes it.</li>
+        <li><b>A strict line between a failed environment and a failed policy,</b> where a reward counts only if a verifier actually wrote it and a failure stays out of the baseline as well as the loss (details <a href="#d6">6</a> and <a href="#d7">7</a>).</li>
+        <li><b>Reward logged before the filter and over valid samples only</b> (<a href="#d8">detail 8</a>), so neither the filter nor a sandbox outage can make a learning policy look stuck or regressing.</li>
+      </ul>
+      <p>The next change is to the schedule. The release trains one update behind and waits for every rollout before pushing weights. Prime Intellect updates weights while generation is still in flight, and its <a href="https://arxiv.org/abs/2512.16144">INTELLECT-3 report</a> says steps took more than twice as long without that. Periodic <a href="https://periodic.com/news/ai-infrastructure-at-periodic">does the same with PipelineRL</a>. Reflection tags every token with the policy version that produced it and <a href="https://reflection.ai/blog/introducing-beam">reports stable numerics</a> on data 107 versions old. The release already records the weight version on every turn, which is the bookkeeping that needs.</p>
+
+      <h2 id="sources">Sources</h2>
+      <ul class="sources">
+        <li>RL360, commit <code>9a9522a</code> (2026-10-22): <a href="https://github.com/ifm-ai/RL360">github.com/ifm-ai/RL360</a>. Every code link in this post points to that commit.</li>
+        <li>Public W&amp;B run <code>wm7usgst</code>: <a href="https://wandb.ai/mbzuai-llm/rl360-public">wandb.ai/mbzuai-llm/rl360-public</a>. K2-Horizon-7B, a dense model, overfitting 32 tasks (27 coding, 5 STEM questions), so it doesn't touch the MoE paths. Medians and ranges are over its 99 logged steps. It was created on 15 September 2026, five weeks before that commit. Its config records no commit, though its flags match the release recipe, and W&amp;B lists its state as crashed.</li>
+        <li>Production numbers: one 375B run of our internal branch, 28–29 October 2026. Step medians are over the 16 steps after it resumed from a checkpoint, and the rollout figures come from about 730 two-minute windows. The weight-push counts and sandbox phases come from the job's console log, and the pushes after the fix from a follow-up run on 30 October.</li>
+        <li>Model cards: <a href="https://huggingface.co/IFM/K2-Horizon-7B">K2-Horizon-7B</a>, <a href="https://huggingface.co/IFM/K2-Horizon-375B-A23B">K2-Horizon-375B-A23B</a>. IFM, <a href="https://ifm.ai/blog/k2/">Introducing K2 Horizon</a>.</li>
+        <li>Other write-ups cited: Yao et al., <a href="https://fengyao.notion.site/off-policy-rl">Your efficient RL framework secretly brings you off-policy RL training</a>; <a href="https://arxiv.org/abs/2503.20783">Dr. GRPO</a>; <a href="https://arxiv.org/abs/2510.11370">rollout routing replay</a>; <a href="https://together.ai/blog/deepswe">DeepSWE</a>; <a href="https://arxiv.org/abs/2602.03411">SWE-Master</a>; Prime Intellect, <a href="https://arxiv.org/abs/2512.16144">INTELLECT-3</a>; Periodic, <a href="https://periodic.com/news/ai-infrastructure-at-periodic">AI Infrastructure at Periodic</a>; Reflection, <a href="https://reflection.ai/blog/introducing-beam">Introducing Beam</a>.</li>
+        <li>Bundled projects: <a href="https://github.com/radixark/miles">Miles</a>, <a href="https://github.com/harbor-framework/harbor">Harbor</a>, <a href="https://github.com/NVIDIA/Megatron-LM">Megatron-LM</a>, <a href="https://github.com/sgl-project/sglang">SGLang</a>.</li>
+      </ul>
+
+      <footer class="post-foot">
+        <p>RL360 is a team effort at IFM. Corrections are welcome: <a href="mailto:pimpalkhutevarad@gmail.com">pimpalkhutevarad@gmail.com</a>.</p>
+      </footer>
+    </article>
+  </div>
+</main>
+</body>
+</html>
