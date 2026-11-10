@@ -15,7 +15,8 @@ test('every page: local links resolve, no errors, no GPU counts, has a title', (
   for (const f of files) {
     const url = urlOf(f), html = fs.readFileSync(f, 'utf8');
     assert.match(html, /<title>[^<]+<\/title>/, `${url} has no title`);
-    assert.doesNotMatch(html, /H200|2,048/, `${url} mentions a GPU count`);
+    // A GPU type is fine (the post gives MFU against an H200's peak); a count never is.
+    assert.doesNotMatch(html, /2,?048|\b\d[\d,]*\s*(?:×\s*)?H[12]00s?\b|\b\d[\d,]*\s+GPUs\b/, `${url} mentions a GPU count`);
     const refs = [...html.matchAll(/\s(?:href|src|data-src|poster)="([^"]+)"/g)].map(m => m[1])
       .filter(u => !/^(https?:|mailto:|#|data:)/.test(u));
     for (const r of new Set(refs)) {
